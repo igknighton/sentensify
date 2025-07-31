@@ -5,6 +5,7 @@ import { argv } from 'node:process';
 import path from "path";
 import fs from "fs";
 import  { convertArrayToCSV } from 'convert-array-to-csv';
+import { randomUUID } from "node:crypto";
 
 const client = new OpenAI({apiKey:process.env.API_KEY});
 
@@ -38,13 +39,14 @@ if (!fs.existsSync(outputDir)){
   
 
   
-  
+  const segmentGuid = randomUUID();
   transcribeData.forEach(segment => {
     const startTime = segment.start;
     const endTime = segment.end;
-
     const segmentId = segment.id;
-    const outputPath = path.join(outputDir+'/audioClips', `segment_${segmentId}.mp3`);
+    const segmentName = `${segmentGuid}_${segmentId}.mp3`;
+    segment['segmentName'] = segmentName;
+    const outputPath = path.join(outputDir+'/audioClips', segmentName);
 
     ffmpeg(filePath)
       .setStartTime(startTime)
@@ -62,7 +64,7 @@ if (!fs.existsSync(outputDir)){
 
 
   //header for csv
-      fs.writeFile(outputDir+`/sentences.csv`,convertArrayToCSV(transcribeData.map(segment => [segment.text," ",`[sound:segment_${segment.id}.mp3]`]),{
+      fs.writeFile(outputDir+`/sentences.csv`,convertArrayToCSV(transcribeData.map(segment => [segment.text," ",`[sound:${segment.segmentName}]`]),{
         separator: ','
     }),err => {
         console.error(err);
