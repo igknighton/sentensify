@@ -6,7 +6,6 @@ import path from "path";
 import fs from "fs";
 import  { convertArrayToCSV } from 'convert-array-to-csv';
 import { randomUUID } from "node:crypto";
-import { log } from "node:console";
 
 const client = new OpenAI({apiKey:process.env.API_KEY});
 
