@@ -21,9 +21,25 @@ const transcribe = async filePath => {
 
     return res.segments;
 }
+const outputDir = './output';
+
+if (!fs.existsSync(outputDir)){
+    fs.mkdirSync(outputDir);
+    fs.mkdirSync(outputDir+'/audioClips');
+}
 
 const main = async (filePath) => {
 const transcribeData = await transcribe(filePath);
+// console.log(transcribeData);
+// export transcribe data 
+fs.writeFile(outputDir+'/transcribe_data.json',JSON.stringify(transcribeData),'',(err)=> {
+    if (err) {
+    console.error('Error writing file:', err);
+    return;
+  }
+  console.log('Transcript data saved!');
+});
+
 ffmpeg.ffprobe(filePath, (err, metadata) => {
   if (err) return console.error(err);
   const duration = metadata.format.duration;
@@ -31,7 +47,6 @@ ffmpeg.ffprobe(filePath, (err, metadata) => {
 
   const numSegments = transcribeData.length;
 
-    const outputDir = './output';
 if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir);
     fs.mkdirSync(outputDir+'/audioClips');
