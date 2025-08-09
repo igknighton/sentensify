@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import  { convertArrayToCSV } from 'convert-array-to-csv';
 import { randomUUID } from "node:crypto";
+import { log } from "node:console";
 
 const client = new OpenAI({apiKey:process.env.API_KEY});
 
@@ -16,11 +17,12 @@ const transcribe = async filePath => {
     file: fs.createReadStream(filePath),
     response_format:"verbose_json",
     model: "whisper-1",
-    timestamp_granularities:"segment"
+    timestamp_granularities:["segment"]
     });
 
     return res.segments;
 }
+const main = async (filePath,updatedTranscriptionData = '') => {
 const outputDir = './output';
 
 if (!fs.existsSync(outputDir)){
@@ -28,9 +30,14 @@ if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir+'/audioClips');
 }
 
-const main = async (filePath) => {
-const transcribeData = await transcribe(filePath);
-// console.log(transcribeData);
+  let transcribeData;
+  if (updatedTranscriptionData !== '') {
+    const file = fs.readFileSync(updatedTranscriptionData,'utf-8')
+    transcribeData = JSON.parse(file);
+  } else {
+    transcribeData = await transcribe(filePath);
+  }
+
 // export transcribe data 
 fs.writeFile(outputDir+'/transcribe_data.json',JSON.stringify(transcribeData),'',(err)=> {
     if (err) {
@@ -89,5 +96,16 @@ if (!fs.existsSync(outputDir)){
 });
 }
 
+const args = process.argv.slice(2);
 
-main(argv[2]);
+let updatedTranscriptionData = '';
+args.forEach(arg => {
+  if (arg.startsWith('--update=')) {
+    updatedTranscriptionData = arg.split('=')[1];
+  } else if (arg === '--update') {
+    const valueIndex = args.indexOf(arg) + 1;
+    updatedTranscriptionData = args[valueIndex]; 
+  }  
+});
+
+main(argv[2],updatedTranscriptionData);
