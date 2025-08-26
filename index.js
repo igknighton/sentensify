@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import 'dotenv/config';
 import ffmpeg from "fluent-ffmpeg";
 import { argv } from 'node:process';
@@ -6,45 +5,51 @@ import path from "path";
 import fs from "fs";
 import  { convertArrayToCSV } from 'convert-array-to-csv';
 import { randomUUID } from "node:crypto";
+import {createClient} from "@deepgram/sdk";
 
-const client = new OpenAI({apiKey:process.env.API_KEY});
-
+const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
+const outputDir = './output';
 
 const transcribe = async filePath => {
 
-    const res = await client.audio.transcriptions.create({
-    file: fs.createReadStream(filePath),
-    response_format:"verbose_json",
-    model: "whisper-1",
-    timestamp_granularities:["segment"]
-    });
+    const {result, error} = await deepgramClient.listen.prerecorded.transcribeFile(
+        fs.readFileSync(filePath),
+        {
+            model: "nova-2",
+            smart_format: true,
+            language: "es",
+        }
+    );
 
-    return res.segments;
+    if (error) throw error;
+    // if (!error) console.dir(result, { depth: null });
+    if (!error) {
+        const {results} = result;
+        const transcriptionObj = results.channels[0]['alternatives'][0]
+
+        // export transcribe data
+        fs.writeFile(outputDir+'/transcribe_data.json',JSON.stringify(results),'',(err)=> {
+            if (err) {
+                console.error('Error writing file:', err);
+                return;
+            }
+            console.log('Transcript data saved!');
+        });
+        // console.dir(transcriptionObj.transcript,{depth:null});
+        const paragraphs = transcriptionObj.paragraphs.paragraphs;
+        console.dir(paragraphs,{depth:null});
+        return paragraphs
+    }
 }
 const main = async (filePath,updatedTranscriptionData = '') => {
-const outputDir = './output';
-
 if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir);
     fs.mkdirSync(outputDir+'/audioClips');
 }
 
-  let transcribeData;
-  if (updatedTranscriptionData !== '') {
-    const file = fs.readFileSync(updatedTranscriptionData,'utf-8')
-    transcribeData = JSON.parse(file);
-  } else {
-    transcribeData = await transcribe(filePath);
-  }
+  const transcribeData = await transcribe(filePath);
 
-// export transcribe data 
-fs.writeFile(outputDir+'/transcribe_data.json',JSON.stringify(transcribeData),'',(err)=> {
-    if (err) {
-    console.error('Error writing file:', err);
-    return;
-  }
-  console.log('Transcript data saved!');
-});
+
 
 ffmpeg.ffprobe(filePath, (err, metadata) => {
   if (err) return console.error(err);
@@ -57,32 +62,34 @@ if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir);
     fs.mkdirSync(outputDir+'/audioClips');
 }
-  
+const segmentGuid = randomUUID();
 
-  
-  const segmentGuid = randomUUID();
-  transcribeData.forEach(segment => {
-    const startTime = segment.start;
-    const endTime = segment.end;
-    const segmentId = segment.id;
-    const segmentName = `${segmentGuid}_${segmentId}.mp3`;
-    segment['segmentName'] = segmentName;
-    const outputPath = path.join(outputDir+'/audioClips', segmentName);
+transcribeData.forEach((paragraph) => {
+    const sentences = paragraph.sentences;
+    let i = 0;
+    sentences.forEach(sentence => {
+        const startTime = sentence.start;
+        const endTime = sentence.end;
+        const sentenceId = i;
+        ++i;
+        const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
+        sentence['segmentName'] = segmentName;
+        const outputPath = path.join(outputDir+'/audioClips', segmentName);
 
-    ffmpeg(filePath)
-      .setStartTime(startTime)
-      .setDuration(endTime-startTime)
-      .output(outputPath)
-      .on('end', () => {
-        console.log(`Segment ${segmentId} saved.`);
-      })
-      .on('error', (err) => {
-        console.error(`Error processing segment ${segmentId}:`, err.message);
-      })
-      .run();
-      
-  });
-
+        console.log(outputPath)
+        ffmpeg(filePath)
+            .setStartTime(startTime)
+            .setDuration(endTime-startTime)
+            .output(outputPath)
+            .on('end', () => {
+                console.log(`sentence ${sentenceId} saved.`);
+            })
+            .on('error', (err) => {
+                console.error(`Error processing segment ${sentenceId}:`, err.message);
+            })
+            .run();
+    })
+})
 
   //header for csv
       fs.writeFile(outputDir+`/sentences.csv`,convertArrayToCSV(transcribeData.map(segment => [segment.text," ",`[sound:${segment.segmentName}]`]),{
