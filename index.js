@@ -62,9 +62,10 @@ if (!fs.existsSync(outputDir)){
 }
 const segmentGuid = randomUUID();
 
+let i = 0;
 transcribeData.forEach((paragraph) => {
     const sentences = paragraph.sentences;
-    let i = 0;
+
     sentences.forEach(sentence => {
         const startTime = sentence.start;
         const endTime = sentence.end;
@@ -96,7 +97,7 @@ transcribeData.forEach((paragraph) => {
         })
     })
     
-    console.log(allSentences);
+    // console.log(allSentences);
     //header for csv
       fs.writeFile(outputDir+`/sentences.csv`,convertArrayToCSV(allSentences.map(sentence => [sentence.text," ",`[sound:${sentence.sentenceAudioName}]`]),{
         separator: ','
