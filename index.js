@@ -56,8 +56,6 @@ ffmpeg.ffprobe(filePath, (err, metadata) => {
   const duration = metadata.format.duration;
   console.log(`Audio duration: ${duration}s`);
 
-  const numSegments = transcribeData.length;
-
 if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir);
     fs.mkdirSync(outputDir+'/audioClips');
@@ -73,10 +71,9 @@ transcribeData.forEach((paragraph) => {
         const sentenceId = i;
         ++i;
         const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
-        sentence['segmentName'] = segmentName;
+        sentence['sentenceAudioName'] = segmentName;
         const outputPath = path.join(outputDir+'/audioClips', segmentName);
 
-        console.log(outputPath)
         ffmpeg(filePath)
             .setStartTime(startTime)
             .setDuration(endTime-startTime)
@@ -85,14 +82,23 @@ transcribeData.forEach((paragraph) => {
                 console.log(`sentence ${sentenceId} saved.`);
             })
             .on('error', (err) => {
-                console.error(`Error processing segment ${sentenceId}:`, err.message);
+                console.error(`Error processing sentence ${sentenceId}:`, err.message);
             })
             .run();
     })
 })
 
-  //header for csv
-      fs.writeFile(outputDir+`/sentences.csv`,convertArrayToCSV(transcribeData.map(segment => [segment.text," ",`[sound:${segment.segmentName}]`]),{
+
+    let allSentences = [];
+    transcribeData.map(paragraph => {
+        paragraph.sentences.map(sentence => {
+            allSentences.push(sentence);
+        })
+    })
+    
+    console.log(allSentences);
+    //header for csv
+      fs.writeFile(outputDir+`/sentences.csv`,convertArrayToCSV(allSentences.map(sentence => [sentence.text," ",`[sound:${sentence.sentenceAudioName}]`]),{
         separator: ','
     }),err => {
         console.error(err);
