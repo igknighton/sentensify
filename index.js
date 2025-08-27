@@ -41,7 +41,7 @@ const transcribe = async filePath => {
         return paragraphs
     }
 }
-const main = async (filePath,updatedTranscriptionData = '') => {
+export const main = async (filePath) => {
 if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir);
     fs.mkdirSync(outputDir+'/audioClips');
@@ -108,17 +108,3 @@ transcribeData.forEach((paragraph) => {
 
 });
 }
-
-const args = process.argv.slice(2);
-
-let updatedTranscriptionData = '';
-args.forEach(arg => {
-  if (arg.startsWith('--update=')) {
-    updatedTranscriptionData = arg.split('=')[1];
-  } else if (arg === '--update') {
-    const valueIndex = args.indexOf(arg) + 1;
-    updatedTranscriptionData = args[valueIndex]; 
-  }  
-});
-
-main(argv[2],updatedTranscriptionData);
