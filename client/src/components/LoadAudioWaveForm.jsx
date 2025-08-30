@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import WavesurferPlayer from "@wavesurfer/react";
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
 import {useRef} from "react";
+import DeleteIcon from '@mui/icons-material/Delete';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 export default function LocalWaveform() {
     const wsRef = useRef(null);
     const regionsRef = useRef(null);
     const [fileUrl, setFileUrl] = useState(null);
     const [selectedStart, setSelectedStart] = useState(0);
     const [selectedEnd, setSelectedEnd] = useState(1);
+    const [segments, setSegments] = useState([]);
     // clean up object URL if you use local uploads (optional)
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
@@ -64,6 +67,15 @@ export default function LocalWaveform() {
 
     const clearRegions = () => regionsRef.current?.clear();
 
+    const addAudioSegment = () => {
+        setSegments([...segments,{id:crypto.randomUUID(),start:selectedStart,end:selectedEnd}])
+    }
+
+    const removeAudioSegment = id => {
+        console.log("Removing segment",id)
+        setSegments(segments.filter(segment => segment.id !== id))
+    }
+
     return (
         <div className="max-w-xl mx-auto p-4">
             <input type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
@@ -91,6 +103,22 @@ export default function LocalWaveform() {
                 <button onClick={clearRegions} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
                     Clear Regions
                 </button>
+                <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
+                    Add Audio Segment
+                </button>
+                <ul>
+                    {
+                        segments.map((segment) => (
+                            <div key={segment.id}>
+                                <p>{segment.start.toFixed(2)}-{segment.end.toFixed(2)}</p>
+                                <div>
+                                    <PlayCircleIcon color={'success'} onClick={() => wsRef.current?.play(segment.start,segment.end)}/>
+                                    <DeleteIcon color={'error'} onClick={() => removeAudioSegment(segment.id)}/>
+                                </div>
+                            </div>
+                        ))
+                    }
+                </ul>
             </div>
         </div>
     );
