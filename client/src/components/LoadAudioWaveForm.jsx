@@ -80,7 +80,7 @@ export default function LocalWaveform() {
                 onReady={onMount}
             />
             <div className="mt-3 flex flex-wrap gap-2">
-                {wsRef.current && <div>Start:{selectedStart} End:{selectedEnd}</div>}
+                {wsRef.current && <div>Start:{selectedStart.toFixed(2)} End:{selectedEnd.toFixed(2)}</div>}
                 <button
                     onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
                     className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
