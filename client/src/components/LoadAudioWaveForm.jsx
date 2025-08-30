@@ -104,7 +104,7 @@ export default function LocalWaveform() {
                     {
                         segments.map((segment) => (
                             <div className={'audioSegment'} key={segment.id}>
-                                <div>{segment.start.toFixed(2)}-{segment.end.toFixed(2)}</div>
+                                <div className={'timeSegment'}>{segment.start.toFixed(2)} - {segment.end.toFixed(2)}</div>
                                 <div>
                                     <PlayCircleIcon color={'success'} onClick={() => wsRef.current?.play(segment.start,segment.end)}/>
                                     <DeleteIcon color={'error'} onClick={() => removeAudioSegment(segment.id)}/>
