@@ -14,3 +14,11 @@
     align-items: center;
     justify-content: center;
 }
+.startEndDisplay {
+    display: flex;
+    align-items: center;
+    justify-content:space-around;
+    padding: 0 200px;
+    margin-top: 10px;
+    margin-bottom: 30px;
+}

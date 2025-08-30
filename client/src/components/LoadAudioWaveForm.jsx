@@ -11,7 +11,6 @@ export default function LocalWaveform() {
     const [selectedStart, setSelectedStart] = useState(0);
     const [selectedEnd, setSelectedEnd] = useState(1);
     const [segments, setSegments] = useState([]);
-    // clean up object URL if you use local uploads (optional)
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
     const onMount = (ws) => {
@@ -19,7 +18,7 @@ export default function LocalWaveform() {
 
         // Register the Regions plugin (returns the plugin instance)
         regionsRef.current = ws.registerPlugin(RegionsPlugin.create());
-        // Optional: enable drag-to-create
+
         regionsRef.current.enableDragSelection({
             color: "rgba(37,99,235,0.25)",
             drag: true,
@@ -90,7 +89,7 @@ export default function LocalWaveform() {
                 onReady={onMount}
             />
             <div className="mt-3 flex flex-wrap gap-2">
-                {wsRef.current && <div>Start:{selectedStart.toFixed(2)} End:{selectedEnd.toFixed(2)}</div>}
+                {wsRef.current && <div className={'startEndDisplay'}><h2>Start: {selectedStart.toFixed(2)}</h2> <h2>End: {selectedEnd.toFixed(2)}</h2></div>}
                 <button
                     onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
                     className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
