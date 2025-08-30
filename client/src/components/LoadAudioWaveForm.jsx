@@ -1,125 +1,96 @@
-import React, { useEffect, useRef, useState } from "react";
-import WaveSurfer from "wavesurfer.js";
-// Optional plugins:
-// import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.js";
+import React, { useState, useEffect } from "react";
+import WavesurferPlayer from "@wavesurfer/react";
+import RegionsPlugin from "wavesurfer.js/plugins/regions";
+import {useRef} from "react";
+export default function LocalWaveform() {
+    const wsRef = useRef(null);
+    const regionsRef = useRef(null);
+    const [fileUrl, setFileUrl] = useState(null);
+    const [selectedStart, setSelectedStart] = useState(0);
+    const [selectedEnd, setSelectedEnd] = useState(1);
+    // clean up object URL if you use local uploads (optional)
+    useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
-export default function LocalAudioWaveform() {
-    const containerRef = useRef(null);
-    const waveSurferRef = useRef(null);
-    const [isReady, setIsReady] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [filename, setFilename] = useState("");
+    const onMount = (ws) => {
+        wsRef.current = ws;
 
-    useEffect(() => {
-        // Create the instance once the container is mounted
-        waveSurferRef.current = WaveSurfer.create({
-            container: containerRef.current,
-            waveColor: "#9ca3af",      // Tailwind gray-400
-            progressColor: "#4b5563",   // gray-600
-            cursorColor: "#d5d8dd",     // gray-900
-            height: 96,
-            barWidth: 2,
-            barGap: 1,
-            interact: true,
-            dragToSeek: true,
-            minPxPerSec: 50,            // zoom baseline; adjust as you like
-            normalize: true,
+        // Register the Regions plugin (returns the plugin instance)
+        regionsRef.current = ws.registerPlugin(RegionsPlugin.create());
+        // Optional: enable drag-to-create
+        regionsRef.current.enableDragSelection({
+            color: "rgba(37,99,235,0.25)",
+            drag: true,
+            resize: true,
         });
 
-        const ws = waveSurferRef.current;
+        // Handy region events
+        regionsRef.current.on("region-created", (r) => {
+            console.log("region-created", r.id, r.start, r.end);
+            setSelectedStart(r.start)
+            setSelectedEnd(r.end)
+        });
+        regionsRef.current.on("region-updated", (r) => {
+            console.log("region-updated", r.id, r.start, r.end);
+            setSelectedStart(r.start)
+            setSelectedEnd(r.end)
+        });
+        regionsRef.current.on("region-clicked", (r, e) => {
+            e.stopPropagation();
+            ws.play(r.start, r.end);
+        });
 
-        // Example: add Regions plugin if you want markers/clips
-        // const regions = RegionsPlugin.create();
-        // ws.registerPlugin(regions);
 
-        ws.on("ready", () => setIsReady(true));
-        ws.on("play", () => setIsPlaying(true));
-        ws.on("pause", () => setIsPlaying(false));
-        ws.on("finish", () => setIsPlaying(false));
-
-        // Responsive redraw on resize
-        const onResize = () => ws?.setOptions({}); // triggers re-render
-        window.addEventListener("resize", onResize);
-
-        return () => {
-            window.removeEventListener("resize", onResize);
-            ws?.destroy();
-        };
-    }, []);
-
-    const loadFile = (file) => {
-        if (!file) return;
-        setIsReady(false);
-        setFilename(file.name);
-        // This decodes audio and renders the waveform
-        waveSurferRef.current.loadBlob(file);
+        ws.on("ready", () => {
+            const dur = ws.getDuration();
+            if (dur > 1.5) {
+                regionsRef.current.addRegion({
+                    start: Math.max(0, dur * 0.1),
+                    end: Math.min(dur, dur * 0.25),
+                    color: "rgba(16,185,129,0.25)",
+                });
+            }
+        });
     };
 
-    const onInputChange = (e) => {
-        const file = e.target.files?.[0];
-        loadFile(file);
+    const handleFile = (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        const url = URL.createObjectURL(f);
+        setFileUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return url;
+        });
     };
 
-    const onDrop = (e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files?.[0];
-        loadFile(file);
-    };
-    const onDragOver = (e) => e.preventDefault();
-
-    const togglePlay = () => {
-        // Browsers require a user gesture before audio can start
-        waveSurferRef.current.playPause();
-    };
-
-    const zoomIn = () => {
-        const ws = waveSurferRef.current;
-        ws.setOptions({ minPxPerSec: Math.min((ws.options.minPxPerSec || 50) * 1.25, 1000) });
-    };
-    const zoomOut = () => {
-        const ws = waveSurferRef.current;
-        ws.setOptions({ minPxPerSec: Math.max((ws.options.minPxPerSec || 50) / 1.25, 20) });
-    };
+    const clearRegions = () => regionsRef.current?.clear();
 
     return (
         <div className="max-w-xl mx-auto p-4">
-            <label
-                htmlFor="uploader"
-                className="block mb-2 font-medium"
-            >
-                Upload an audio file (mp3, wav, m4a, etc.)
-            </label>
-
-            <input
-                id="uploader"
-                type="file"
-                accept="audio/*"
-                onChange={onInputChange}
-                className="mb-3"
+            <input type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
+            <WavesurferPlayer
+                url={fileUrl || undefined}
+                height={100}
+                barWidth={2}
+                barGap={1}
+                waveColor="#9ca3af"
+                progressColor="#4b5563"
+                cursorColor="#111827"
+                normalize
+                dragToSeek
+                onReady={onMount}
             />
-
-            <div
-                onDrop={onDrop}
-                onDragOver={onDragOver}
-                className="mb-3 p-6 border-2 border-dashed rounded-lg text-center text-sm text-gray-600"
-            >
-                Drag & drop an audio file here
-            </div>
-
-            {filename && <div className="mb-2 text-sm text-gray-700">Loaded: {filename}</div>}
-
-            <div ref={containerRef} className="w-full mb-3" />
-
-            <div className="flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
+                {wsRef.current && <div>Start:{selectedStart} End:{selectedEnd}</div>}
                 <button
-                    onClick={togglePlay}
-                    disabled={!isReady}
+                    onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
                     className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
+                    disabled={!wsRef.current}
                 >
-                    {isPlaying ? "Pause" : "Play"}
+                    {wsRef.current?.isPlaying() ? "Pause" : "Play"}
                 </button>
-                <button onClick={zoomIn} className="px-3 py-2 rounded border">Zoom In</button>
-                <button onClick={zoomOut} className="px-3 py-2 rounded border">Zoom Out</button>
+                <button onClick={clearRegions} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
+                    Clear Regions
+                </button>
             </div>
         </div>
     );
