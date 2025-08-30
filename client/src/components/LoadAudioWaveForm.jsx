@@ -27,12 +27,10 @@ export default function LocalWaveform() {
 
         // Handy region events
         regionsRef.current.on("region-created", (r) => {
-            console.log("region-created", r.id, r.start, r.end);
             setSelectedStart(r.start)
             setSelectedEnd(r.end)
         });
         regionsRef.current.on("region-updated", (r) => {
-            console.log("region-updated", r.id, r.start, r.end);
             setSelectedStart(r.start)
             setSelectedEnd(r.end)
         });
@@ -69,7 +67,6 @@ export default function LocalWaveform() {
     }
 
     const removeAudioSegment = id => {
-        console.log("Removing segment",id)
         setSegments(segments.filter(segment => segment.id !== id))
     }
 
