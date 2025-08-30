@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import WavesurferPlayer from "@wavesurfer/react";
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
+import ZoomPlugin from "wavesurfer.js/plugins/zoom";
 import {useRef} from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 export default function LocalWaveform() {
     const wsRef = useRef(null);
     const regionsRef = useRef(null);
+    const zoomRef = useRef(null);
     const [fileUrl, setFileUrl] = useState(null);
     const [selectedStart, setSelectedStart] = useState(0);
     const [selectedEnd, setSelectedEnd] = useState(1);
@@ -18,12 +20,10 @@ export default function LocalWaveform() {
 
         // Register the Regions plugin (returns the plugin instance)
         regionsRef.current = ws.registerPlugin(RegionsPlugin.create());
-
-        regionsRef.current.enableDragSelection({
-            color: "rgba(37,99,235,0.25)",
-            drag: true,
-            resize: true,
-        });
+        zoomRef.current = ws.registerPlugin(ZoomPlugin.create({
+            scale:0.5,
+            maxZoom:100
+        }));
 
         // Handy region events
         regionsRef.current.on("region-created", (r) => {
@@ -89,6 +89,7 @@ export default function LocalWaveform() {
                 onReady={onMount}
             />
             <div className="mt-3 flex flex-wrap gap-2">
+                {wsRef.current && <p>Scroll on audio to zoom in/out</p>}
                 {wsRef.current && <div className={'startEndDisplay'}><h2>Start: {selectedStart.toFixed(2)}</h2> <h2>End: {selectedEnd.toFixed(2)}</h2></div>}
                 <button
                     onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
