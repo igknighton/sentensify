@@ -65,8 +65,6 @@ export default function LocalWaveform() {
         });
     };
 
-    const clearRegions = () => regionsRef.current?.clear();
-
     const addAudioSegment = () => {
         setSegments([...segments,{id:crypto.randomUUID(),start:selectedStart,end:selectedEnd}])
     }
@@ -100,17 +98,14 @@ export default function LocalWaveform() {
                 >
                     {wsRef.current?.isPlaying() ? "Pause" : "Play"}
                 </button>
-                <button onClick={clearRegions} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
-                    Clear Regions
-                </button>
                 <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
                     Add Audio Segment
                 </button>
                 <ul>
                     {
                         segments.map((segment) => (
-                            <div key={segment.id}>
-                                <p>{segment.start.toFixed(2)}-{segment.end.toFixed(2)}</p>
+                            <div className={'audioSegment'} key={segment.id}>
+                                <div>{segment.start.toFixed(2)}-{segment.end.toFixed(2)}</div>
                                 <div>
                                     <PlayCircleIcon color={'success'} onClick={() => wsRef.current?.play(segment.start,segment.end)}/>
                                     <DeleteIcon color={'error'} onClick={() => removeAudioSegment(segment.id)}/>

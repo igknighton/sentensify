@@ -9,3 +9,8 @@
     display: none;
 }
 
+.audioSegment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
