@@ -9,11 +9,11 @@ const upload = multer({ dest: "uploads/" });
 
 
 app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
-    // console.log(req.file.path);
+    console.log(req.file);
     await main(req.file.path);
     res.json({ message: "Audio received", file: req.file });
 })
-app.get('/api/test',(req,res)=> {
+app.get('/api/test',(req,res) => {
     res.json({message:"This is a test"})
 })
 

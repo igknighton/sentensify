@@ -14,6 +14,7 @@ export default function LocalWaveform() {
     const [selectedStart, setSelectedStart] = useState(0);
     const [selectedEnd, setSelectedEnd] = useState(1);
     const [segments, setSegments] = useState([]);
+    const [selectedFile, setSelectedFile] = useState(null);
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
     const onMount = (ws) => {
@@ -57,6 +58,7 @@ export default function LocalWaveform() {
         const f = e.target.files?.[0];
         if (!f) return;
         const url = URL.createObjectURL(f);
+        setSelectedFile(f);
         setFileUrl((prev) => {
             if (prev) URL.revokeObjectURL(prev);
             return url;
@@ -72,8 +74,18 @@ export default function LocalWaveform() {
     }
 
     const transcribe = async () => {
-        const res = await axios.get('/api/test')
-        console.log("Response",res.data)
+        try {
+            const res = await axios.post('/api/transcribe', {
+                audio: selectedFile
+            }, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+         }
+        catch (e) {
+            console.error("Error Transcribing audio",e)
+        }
     }
 
     return (
@@ -104,7 +116,7 @@ export default function LocalWaveform() {
                 <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
                     Add Audio Segment
                 </button>
-                <button onClick={transcribe} className="px-3 py-2 rounded border">
+                <button onClick={transcribe} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
                     Transcribe Entire audio
                 </button>
 
