@@ -11,7 +11,20 @@ const upload = multer({ dest: "uploads/" });
 app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     console.log(req.file);
     await main(req.file.path);
-    res.json({ message: "Audio received", file: req.file });
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="output.zip"`
+    );
+
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.on("error", (err) => res.status(500).send(err.message));
+
+    archive.pipe(res);
+    archive.directory('output', false);
+    await archive.finalize();
+
 })
 app.get('/api/test',(req,res) => {
     res.json({message:"This is a test"})

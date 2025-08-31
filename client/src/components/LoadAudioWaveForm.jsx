@@ -15,6 +15,7 @@ export default function LocalWaveform() {
     const [selectedEnd, setSelectedEnd] = useState(1);
     const [segments, setSegments] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [loading, setLoading] = useState(false);
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
     const onMount = (ws) => {
@@ -75,16 +76,32 @@ export default function LocalWaveform() {
 
     const transcribe = async () => {
         try {
+            setLoading(true);
             const res = await axios.post('/api/transcribe', {
                 audio: selectedFile
             }, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
-                }
+                },
+                responseType:'blob'
             })
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement("a");
+            link.href = url;
+
+
+            link.setAttribute("download", `output.zip`);
+
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            window.URL.revokeObjectURL(url);
+            setLoading(false)
          }
         catch (e) {
             console.error("Error Transcribing audio",e)
+            setLoading(false)
         }
     }
 
@@ -103,37 +120,40 @@ export default function LocalWaveform() {
                 dragToSeek
                 onReady={onMount}
             />
-            <div className="mt-3 flex flex-wrap gap-2">
-                {wsRef.current && <p>Scroll on audio to zoom in/out</p>}
-                {wsRef.current && <div className={'startEndDisplay'}><h2>Start: {selectedStart.toFixed(2)}</h2> <h2>End: {selectedEnd.toFixed(2)}</h2></div>}
-                <button
-                    onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
-                    className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
-                    disabled={!wsRef.current}
-                >
-                    {wsRef.current?.isPlaying() ? "Pause" : "Play"}
-                </button>
-                <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
-                    Add Audio Segment
-                </button>
-                <button onClick={transcribe} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
-                    Transcribe Entire audio
-                </button>
+            {
+                loading ? <div>Transcribing Audio...</div> :
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {wsRef.current && <p>Scroll on audio to zoom in/out</p>}
+                        {wsRef.current && <div className={'startEndDisplay'}><h2>Start: {selectedStart.toFixed(2)}</h2> <h2>End: {selectedEnd.toFixed(2)}</h2></div>}
+                        <button
+                            onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
+                            className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
+                            disabled={!wsRef.current}
+                        >
+                            {wsRef.current?.isPlaying() ? "Pause" : "Play"}
+                        </button>
+                        <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
+                            Add Audio Segment
+                        </button>
+                        <button onClick={transcribe} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
+                            Transcribe Entire audio
+                        </button>
 
-                <ul>
-                    {
-                        segments.map((segment) => (
-                            <div className={'audioSegment'} key={segment.id}>
-                                <div className={'timeSegment'}>{segment.start.toFixed(2)} - {segment.end.toFixed(2)}</div>
-                                <div>
-                                    <PlayCircleIcon color={'success'} onClick={() => wsRef.current?.play(segment.start,segment.end)}/>
-                                    <DeleteIcon color={'error'} onClick={() => removeAudioSegment(segment.id)}/>
-                                </div>
-                            </div>
-                        ))
-                    }
-                </ul>
-            </div>
+                        <ul>
+                            {
+                                segments.map((segment) => (
+                                    <div className={'audioSegment'} key={segment.id}>
+                                        <div className={'timeSegment'}>{segment.start.toFixed(2)} - {segment.end.toFixed(2)}</div>
+                                        <div>
+                                            <PlayCircleIcon color={'success'} onClick={() => wsRef.current?.play(segment.start,segment.end)}/>
+                                            <DeleteIcon color={'error'} onClick={() => removeAudioSegment(segment.id)}/>
+                                        </div>
+                                    </div>
+                                ))
+                            }
+                        </ul>
+                    </div>
+            }
         </div>
     );
 }
