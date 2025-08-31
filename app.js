@@ -8,10 +8,13 @@ const port = 3000
 const upload = multer({ dest: "uploads/" });
 
 
-app.post('/transcribe',upload.single("audio"), async (req, res) => {
+app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     // console.log(req.file.path);
     await main(req.file.path);
     res.json({ message: "Audio received", file: req.file });
+})
+app.get('/api/test',(req,res)=> {
+    res.json({message:"This is a test"})
 })
 
 app.listen(port, () => {

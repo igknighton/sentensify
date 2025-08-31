@@ -5,6 +5,7 @@ import ZoomPlugin from "wavesurfer.js/plugins/zoom";
 import {useRef} from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import axios from "axios";
 export default function LocalWaveform() {
     const wsRef = useRef(null);
     const regionsRef = useRef(null);
@@ -70,6 +71,11 @@ export default function LocalWaveform() {
         setSegments(segments.filter(segment => segment.id !== id))
     }
 
+    const transcribe = async () => {
+        const res = await axios.get('/api/test')
+        console.log("Response",res.data)
+    }
+
     return (
         <div className="max-w-xl mx-auto p-4">
             <input type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
@@ -98,6 +104,10 @@ export default function LocalWaveform() {
                 <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
                     Add Audio Segment
                 </button>
+                <button onClick={transcribe} className="px-3 py-2 rounded border">
+                    Transcribe Entire audio
+                </button>
+
                 <ul>
                     {
                         segments.map((segment) => (
