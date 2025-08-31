@@ -5,7 +5,9 @@ import ZoomPlugin from "wavesurfer.js/plugins/zoom";
 import {useRef} from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import Stack from '@mui/material/Stack';
 import axios from "axios";
+import CustomButton from "./CustomButton.jsx";
 export default function LocalWaveform() {
     const wsRef = useRef(null);
     const regionsRef = useRef(null);
@@ -144,8 +146,8 @@ export default function LocalWaveform() {
                 height={100}
                 barWidth={2}
                 barGap={1}
-                waveColor="#9ca3af"
-                progressColor="#4b5563"
+                waveColor="#f06543"
+                progressColor="#712e22"
                 cursorColor="#111827"
                 normalize
                 dragToSeek
@@ -153,25 +155,33 @@ export default function LocalWaveform() {
             />
             {
                 loading ? <div>Transcribing Audio...</div> :
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div>
                         {wsRef.current && <p>Scroll on audio to zoom in/out</p>}
                         {wsRef.current && <div className={'startEndDisplay'}><h2>Start: {selectedStart.toFixed(2)}</h2> <h2>End: {selectedEnd.toFixed(2)}</h2></div>}
-                        <button
-                            onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
-                            className="px-3 py-2 rounded bg-gray-900 text-white disabled:opacity-50"
-                            disabled={!wsRef.current}
+                        <Stack
+                            spacing={2}
+                            direction="row"
+                            sx={{
+                                justifyContent: "center",
+                                alignItems: "flex-start",
+                            }}
                         >
-                            {wsRef.current?.isPlaying() ? "Pause" : "Play"}
-                        </button>
-                        <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
-                            Add Audio Segment
-                        </button>
-                        <button onClick={transcribeSegments} className="px-3 py-2 rounded border" disabled={!regionsRef.current || segments.length === 0}>
-                            Transcribe Audio segments
-                        </button>
-                        <button onClick={transcribe} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
-                            Transcribe Entire audio
-                        </button>
+                            <CustomButton
+                                onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
+                                disabled={!wsRef.current}
+                            >
+                                {wsRef.current?.isPlaying() ? "Pause" : "Play"}
+                            </CustomButton>
+                            <CustomButton onClick={addAudioSegment}  disabled={!regionsRef.current}>
+                                Add Audio Segment
+                            </CustomButton>
+                            <CustomButton onClick={transcribeSegments}  disabled={!regionsRef.current || segments.length === 0}>
+                                Transcribe Audio segments
+                            </CustomButton>
+                            <CustomButton onClick={transcribe}  disabled={!regionsRef.current}>
+                                Transcribe Entire audio
+                            </CustomButton>
+                        </Stack>
 
                         <ul>
                             {
