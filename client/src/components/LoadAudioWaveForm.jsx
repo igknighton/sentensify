@@ -104,6 +104,37 @@ export default function LocalWaveform() {
             setLoading(false)
         }
     }
+    const transcribeSegments = async () => {
+        try {
+            setLoading(true);
+            const res = await axios.post('/api/transcribe', {
+                audio: selectedFile,
+                segments
+            }, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                responseType:'blob'
+            })
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement("a");
+            link.href = url;
+
+
+            link.setAttribute("download", `output.zip`);
+
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            window.URL.revokeObjectURL(url);
+            setLoading(false)
+        }
+        catch (e) {
+            console.error("Error Transcribing audio",e)
+            setLoading(false)
+        }
+    }
 
     return (
         <div className="max-w-xl mx-auto p-4">
@@ -134,6 +165,9 @@ export default function LocalWaveform() {
                         </button>
                         <button onClick={addAudioSegment} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
                             Add Audio Segment
+                        </button>
+                        <button onClick={transcribeSegments} className="px-3 py-2 rounded border" disabled={!regionsRef.current || segments.length === 0}>
+                            Transcribe Audio segments
                         </button>
                         <button onClick={transcribe} className="px-3 py-2 rounded border" disabled={!regionsRef.current}>
                             Transcribe Entire audio

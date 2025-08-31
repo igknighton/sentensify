@@ -9,8 +9,11 @@ const upload = multer({ dest: "uploads/" });
 
 
 app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
-    console.log(req.file);
-    await main(req.file.path);
+    let audioSegments = []
+    if (req.body.segments !== undefined) {
+        audioSegments = req.body.segments
+    }
+    await main(req.file.path,audioSegments);
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(
@@ -24,7 +27,7 @@ app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     archive.pipe(res);
     archive.directory('output', false);
     await archive.finalize();
-
+    //todo remove files when done
 })
 app.get('/api/test',(req,res) => {
     res.json({message:"This is a test"})

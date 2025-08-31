@@ -10,7 +10,7 @@ import {createClient} from "@deepgram/sdk";
 const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
 const outputDir = './output';
 
-const transcribe = async filePath => {
+const transcribe = async (filePath,audioSegments) => {
 
     const {result, error} = await deepgramClient.listen.prerecorded.transcribeFile(
         fs.readFileSync(filePath),
@@ -36,18 +36,42 @@ const transcribe = async filePath => {
             console.log('Transcript data saved!');
         });
         // console.dir(transcriptionObj.transcript,{depth:null});
-        const paragraphs = transcriptionObj.paragraphs.paragraphs;
-        console.dir(paragraphs,{depth:null});
-        return paragraphs
+        if (audioSegments.length === 0) {
+            const paragraphs = transcriptionObj.paragraphs.paragraphs;
+            // console.dir(paragraphs, {depth: null});
+            return paragraphs
+        } else {
+            const words = transcriptionObj.words;
+            let paragraphs = [];
+            let sentences = []
+            audioSegments.forEach(segment => {
+                const start = segment.start;
+                const end = segment.end;
+                const phrase = words.filter( word => (word.start >= start && word.end <= end))
+                const text = phrase.map(word => {
+                    return word.punctuated_word
+                })
+                sentences.push({
+                    "text": text.join(" "),
+                    start: start,
+                    end:end
+                })
+            })
+            paragraphs.push({
+                "sentences": sentences
+            })
+
+            return paragraphs
+        }
     }
 }
-export const main = async (filePath) => {
+export const main = async (filePath, audioSegments = []) => {
 if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir);
     fs.mkdirSync(outputDir+'/audioClips');
 }
 
-  const transcribeData = await transcribe(filePath);
+  const transcribeData = await transcribe(filePath,audioSegments);
 
 
 
