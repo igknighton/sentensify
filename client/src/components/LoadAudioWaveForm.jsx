@@ -51,7 +51,7 @@ export default function LocalWaveform() {
                 regionsRef.current.addRegion({
                     start: Math.max(0, dur * 0.1),
                     end: Math.min(dur, dur * 0.25),
-                    color: "rgba(16,185,129,0.25)",
+                    color: "rgba(150, 205, 255, .25)",
                 });
             }
         });
