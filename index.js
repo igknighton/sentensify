@@ -42,10 +42,12 @@ const transcribe = async (filePath,audioSegments) => {
         } else {
             const words = transcriptionObj.words;
             let paragraphs = [];
-            let sentences = []
+            let sentences = [];
+            // variable used for segments that end too early
+            const duration = 0.3
             audioSegments.forEach(segment => {
                 const start = segment.start;
-                const end = segment.end;
+                const end = segment.end += duration;
                 const phrase = words.filter( word => (word.start >= start && word.end <= end))
                 const text = phrase.map(word => {
                     return word.punctuated_word
@@ -103,7 +105,7 @@ export const main = async (filePath, audioSegments = []) => {
         const sentences = paragraph.sentences;
         for (const sentence of sentences) {
             const startTime = sentence.start;
-            const endTime = sentence.end;
+            const endTime = sentence.end += 0.3;
             const sentenceId = i;
             ++i;
             const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
