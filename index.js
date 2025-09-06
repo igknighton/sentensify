@@ -46,8 +46,8 @@ const transcribe = async (filePath,audioSegments) => {
             // variable used for segments that end too early
             const duration = 0.3
             audioSegments.forEach(segment => {
-                const start = segment.start;
-                const end = segment.end += duration;
+                const start = parseFloat(segment.start);
+                const end = parseFloat(segment.end+duration);
                 const phrase = words.filter( word => (word.start >= start && word.end <= end))
                 const text = phrase.map(word => {
                     return word.punctuated_word
