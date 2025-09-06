@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import ffmpeg from "fluent-ffmpeg";
-import { argv } from 'node:process';
 import path from "path";
 import fs from "fs";
 import  { convertArrayToCSV } from 'convert-array-to-csv';
@@ -28,7 +27,7 @@ const transcribe = async (filePath,audioSegments) => {
         const transcriptionObj = results.channels[0]['alternatives'][0]
 
         // export transcribe data
-        fs.writeFile(outputDir+'/transcribe_data.json',JSON.stringify(results),'',(err)=> {
+        await fs.writeFile(outputDir+'/transcribe_data.json',JSON.stringify(results),'',(err)=> {
             if (err) {
                 console.error('Error writing file:', err);
                 return;
@@ -65,70 +64,70 @@ const transcribe = async (filePath,audioSegments) => {
         }
     }
 }
+const ensureDir = (p) => fs.promises.mkdir(p, { recursive: true });
+
+const ffprobeAsync = (filePath) =>
+    new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err) return reject(err);
+            resolve(metadata);
+        });
+    });
+
+const exportClip = (srcPath, start, end, outPath) =>
+    new Promise((resolve, reject) => {
+        ffmpeg(srcPath)
+            .setStartTime(start)
+            .setDuration(end - start)
+            .output(outPath)
+            .on("end", resolve)
+            .on("error", reject)
+            .run();
+    });
+
 export const main = async (filePath, audioSegments = []) => {
-if (!fs.existsSync(outputDir)){
-    fs.mkdirSync(outputDir);
-    fs.mkdirSync(outputDir+'/audioClips');
-}
+    await ensureDir(outputDir);
+    await ensureDir(path.join(outputDir, "audioClips"));
 
   const transcribeData = await transcribe(filePath,audioSegments);
 
 
+  const metadata = await ffprobeAsync(filePath);
+  console.log(`Audio duration: ${metadata.format.duration}s`);
 
-ffmpeg.ffprobe(filePath, (err, metadata) => {
-  if (err) return console.error(err);
-  const duration = metadata.format.duration;
-  console.log(`Audio duration: ${duration}s`);
+  const segmentGuid = randomUUID();
 
-if (!fs.existsSync(outputDir)){
-    fs.mkdirSync(outputDir);
-    fs.mkdirSync(outputDir+'/audioClips');
-}
-const segmentGuid = randomUUID();
+    let i = 0;
+    let clipJobs = [];
+    for (const paragraph of transcribeData) {
+        const sentences = paragraph.sentences;
+        for (const sentence of sentences) {
+            const startTime = sentence.start;
+            const endTime = sentence.end;
+            const sentenceId = i;
+            ++i;
+            const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
+            sentence['sentenceAudioName'] = segmentName;
+            const outputPath = path.join(outputDir+'/audioClips', segmentName);
 
-let i = 0;
-transcribeData.forEach((paragraph) => {
-    const sentences = paragraph.sentences;
+            clipJobs.push(
+                exportClip(filePath,startTime,endTime,outputPath).then(() => {
+                    console.log(`sentence ${sentenceId}`)
+                })
+            )
+        }
+    }
 
-    sentences.forEach(sentence => {
-        const startTime = sentence.start;
-        const endTime = sentence.end;
-        const sentenceId = i;
-        ++i;
-        const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
-        sentence['sentenceAudioName'] = segmentName;
-        const outputPath = path.join(outputDir+'/audioClips', segmentName);
+    await Promise.all(clipJobs);
 
-        ffmpeg(filePath)
-            .setStartTime(startTime)
-            .setDuration(endTime-startTime)
-            .output(outputPath)
-            .on('end', () => {
-                console.log(`sentence ${sentenceId} saved.`);
-            })
-            .on('error', (err) => {
-                console.error(`Error processing sentence ${sentenceId}:`, err.message);
-            })
-            .run();
-    })
-})
-
-
-    let allSentences = [];
-    transcribeData.map(paragraph => {
-        paragraph.sentences.map(sentence => {
-            allSentences.push(sentence);
-        })
-    })
-    
-    // console.log(allSentences);
-    //header for csv
-      fs.writeFile(outputDir+`/sentences.csv`,convertArrayToCSV(allSentences.map(sentence => [sentence.text," ",`[sound:${sentence.sentenceAudioName}]`]),{
-        separator: ','
-    }),err => {
+    const allSentences = transcribeData.flatMap(paragraph => paragraph.sentences);
+    const csv = convertArrayToCSV(allSentences.map(sentence =>
+        [sentence.text," ",`[sound:${sentence.sentenceAudioName}]`]),
+        {separator: ','}
+    )
+    await fs.writeFile(path.join(outputDir,"sentences.csv"),csv,err => {
         console.error(err);
     });
-    console.log('File saved!');
+    console.log('CSV saved!');
 
-});
 }
