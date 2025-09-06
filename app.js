@@ -2,6 +2,7 @@ import express from 'express';
 import archiver from 'archiver';
 import multer from 'multer';
 import {main} from "./index.js";
+import fs from "fs";
 const app = express()
 const port = 3000
 
@@ -27,7 +28,7 @@ app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     archive.pipe(res);
     archive.directory('output', false);
     await archive.finalize();
-    //todo remove files when done
+    fs.rmSync('output', { recursive: true, force: true });
 })
 app.get('/api/test',(req,res) => {
     res.json({message:"This is a test"})
