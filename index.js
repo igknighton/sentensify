@@ -14,7 +14,7 @@ const transcribe = async (filePath,audioSegments) => {
     const {result, error} = await deepgramClient.listen.prerecorded.transcribeFile(
         fs.readFileSync(filePath),
         {
-            model: "nova-2",
+            model: "nova-3",
             smart_format: true,
             language: "es",
         }
