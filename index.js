@@ -46,8 +46,8 @@ const transcribe = async (filePath,audioSegments) => {
                 const startSegment = parseFloat(segment.start);
                 const endSegment = parseFloat(segment.end);
                 const phrase = words.filter( word => (
-                    word.start >= startSegment &&
-                    word.start <= endSegment
+                    (word.start >= startSegment && word.start <= endSegment) ||
+                    (word.start <= startSegment && startSegment <= word.end)
                 ))
                 const text = phrase.map(word => {
                     return word.punctuated_word
