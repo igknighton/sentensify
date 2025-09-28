@@ -36,26 +36,26 @@ const transcribe = async (filePath,audioSegments) => {
         });
         // console.dir(transcriptionObj.transcript,{depth:null});
         if (audioSegments.length === 0) {
-            const paragraphs = transcriptionObj.paragraphs.paragraphs;
-            // console.dir(paragraphs, {depth: null});
-            return paragraphs
+            // console.dir(transcriptionObj.paragraphs.paragraphs, {depth: null});
+            return transcriptionObj.paragraphs.paragraphs;
         } else {
             const words = transcriptionObj.words;
             let paragraphs = [];
             let sentences = [];
-            // variable used for segments that end too early
-            const duration = 0.3
             audioSegments.forEach(segment => {
-                const start = parseFloat(segment.start);
-                const end = parseFloat(segment.end+duration);
-                const phrase = words.filter( word => (word.start >= start && word.end <= end))
+                const startSegment = parseFloat(segment.start);
+                const endSegment = parseFloat(segment.end);
+                const phrase = words.filter( word => (
+                    word.start >= startSegment &&
+                    word.start <= endSegment
+                ))
                 const text = phrase.map(word => {
                     return word.punctuated_word
                 })
                 sentences.push({
                     "text": text.join(" "),
-                    start: start,
-                    end:end
+                    start: startSegment,
+                    end:endSegment
                 })
             })
             paragraphs.push({
@@ -88,48 +88,52 @@ const exportClip = (srcPath, start, end, outPath) =>
     });
 
 export const main = async (filePath, audioSegments = []) => {
-    await ensureDir(outputDir);
-    await ensureDir(path.join(outputDir, "audioClips"));
+    try {
+        await ensureDir(outputDir);
+        await ensureDir(path.join(outputDir, "audioClips"));
 
-  const transcribeData = await transcribe(filePath,audioSegments);
+        const transcribeData = await transcribe(filePath, audioSegments);
 
 
-  const metadata = await ffprobeAsync(filePath);
-  console.log(`Audio duration: ${metadata.format.duration}s`);
+        const metadata = await ffprobeAsync(filePath);
+        console.log(`Audio duration: ${metadata.format.duration}s`);
 
-  const segmentGuid = randomUUID();
+        const segmentGuid = randomUUID();
 
-    let i = 0;
-    let clipJobs = [];
-    for (const paragraph of transcribeData) {
-        const sentences = paragraph.sentences;
-        for (const sentence of sentences) {
-            const startTime = sentence.start;
-            const endTime = sentence.end += 0.3;
-            const sentenceId = i;
-            ++i;
-            const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
-            sentence['sentenceAudioName'] = segmentName;
-            const outputPath = path.join(outputDir+'/audioClips', segmentName);
+        let i = 0;
+        let clipJobs = [];
+        for (const paragraph of transcribeData) {
+            const sentences = paragraph.sentences;
+            for (const sentence of sentences) {
+                const startTime = sentence.start;
+                const endTime = sentence.end += 0.3;
+                const sentenceId = i;
+                ++i;
+                const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
+                sentence['sentenceAudioName'] = segmentName;
+                const outputPath = path.join(outputDir + '/audioClips', segmentName);
 
-            clipJobs.push(
-                exportClip(filePath,startTime,endTime,outputPath).then(() => {
-                    console.log(`sentence ${sentenceId}`)
-                })
-            )
+                clipJobs.push(
+                    exportClip(filePath, startTime, endTime, outputPath).then(() => {
+                        console.log(`sentence ${sentenceId}`)
+                    })
+                )
+            }
         }
+
+        await Promise.all(clipJobs);
+
+        const allSentences = transcribeData.flatMap(paragraph => paragraph.sentences);
+        const csv = convertArrayToCSV(allSentences.map(sentence =>
+                [sentence.text, " ", `[sound:${sentence.sentenceAudioName}]`]),
+            {separator: ','}
+        )
+        await fs.writeFile(path.join(outputDir, "sentences.csv"), csv, err => {
+            console.error(err);
+        });
+        console.log('CSV saved!');
+    } catch (e) {
+        console.error("An error occurred",e)
     }
-
-    await Promise.all(clipJobs);
-
-    const allSentences = transcribeData.flatMap(paragraph => paragraph.sentences);
-    const csv = convertArrayToCSV(allSentences.map(sentence =>
-        [sentence.text," ",`[sound:${sentence.sentenceAudioName}]`]),
-        {separator: ','}
-    )
-    await fs.writeFile(path.join(outputDir,"sentences.csv"),csv,err => {
-        console.error(err);
-    });
-    console.log('CSV saved!');
 
 }
