@@ -76,11 +76,20 @@ const ffprobeAsync = (filePath) =>
         });
     });
 
+const sanitizeTime = (t, { min = 0, decimals = 6 } = {}) => {
+    if (!Number.isFinite(t)) return 0;
+    // Treat tiny magnitudes as zero
+    if (Math.abs(t) < 1e-3) t = 0;
+    // No negatives
+    t = Math.max(min, t);
+    // Return as fixed-decimal string (prevents 1.2e-7)
+    return t.toFixed(decimals);
+};
 const exportClip = (srcPath, start, end, outPath) =>
     new Promise((resolve, reject) => {
         ffmpeg(srcPath)
-            .setStartTime(start)
-            .setDuration(end - start)
+            .setStartTime(sanitizeTime(start))
+            .setDuration(sanitizeTime(end - start))
             .output(outPath)
             .on("end", resolve)
             .on("error", reject)
