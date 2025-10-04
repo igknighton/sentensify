@@ -178,9 +178,6 @@ export default function LocalWaveform() {
                             <CustomButton onClick={transcribeSegments}  disabled={!regionsRef.current || segments.length === 0}>
                                 Transcribe Audio segments
                             </CustomButton>
-                            <CustomButton onClick={transcribe}  disabled={!regionsRef.current}>
-                                Transcribe Entire audio
-                            </CustomButton>
                         </Stack>
 
                         <ul>
