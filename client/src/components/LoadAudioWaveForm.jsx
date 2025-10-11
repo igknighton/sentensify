@@ -187,7 +187,7 @@ export default function LocalWaveform() {
                                 onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
                                 disabled={!wsRef.current}
                             >
-                                {wsRef.current?.isPlaying() ? "Pause" : "Play"}
+                                {wsRef.current?.isPlaying() ? "Pause" : "Play Audio Segment"}
                             </CustomButton>
                             <CustomButton onClick={addAudioSegment}  disabled={!regionsRef.current}>
                                 Add Audio Segment
