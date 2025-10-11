@@ -18,8 +18,16 @@ export default function LocalWaveform() {
     const [segments, setSegments] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [showAlert, setShowAlert] = useState(false);
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
+    useEffect(() => {
+        if (showAlert) {
+            setTimeout(() => {
+                setShowAlert(false);
+            }, 2000);
+        }
+    },[showAlert])
     const onMount = (ws) => {
         wsRef.current = ws;
 
@@ -70,6 +78,7 @@ export default function LocalWaveform() {
 
     const addAudioSegment = () => {
         setSegments([...segments,{id:crypto.randomUUID(),start:selectedStart,end:selectedEnd}])
+        setShowAlert(true)
     }
 
     const removeAudioSegment = id => {
@@ -156,8 +165,16 @@ export default function LocalWaveform() {
             {
                 loading ? <div>Transcribing Audio...</div> :
                     <div>
-                        {wsRef.current && <p>Scroll on audio to zoom in/out</p>}
-                        {wsRef.current && <div className={'startEndDisplay'}><h2>Start: {selectedStart.toFixed(2)}</h2> <h2>End: {selectedEnd.toFixed(2)}</h2></div>}
+                        {
+                            wsRef.current && <>
+                                {showAlert ? <p className={'alert-text'}>Audio Segment Added!</p> :
+                                    <p>Scroll on audio to zoom in/out</p>}
+                            </>
+                        }
+                        {wsRef.current && <div className={'startEndDisplay'}>
+                            <h2>Start: {selectedStart.toFixed(2)}</h2>
+                            <h2>End: {selectedEnd.toFixed(2)}</h2>
+                        </div>}
                         <Stack
                             spacing={2}
                             direction="row"
