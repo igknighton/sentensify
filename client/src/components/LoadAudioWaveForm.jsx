@@ -21,6 +21,17 @@ export default function LocalWaveform() {
     const [showAlert, setShowAlert] = useState(false);
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
+
+    useEffect(() => {
+        //todo load filename from /upload upon refresh
+
+        // const audioSegmentsLocal = JSON.parse(localStorage.getItem("audioSegments"))
+        // console.log({ selectedFile,audioSegmentsLocal })
+        // if (audioSegmentsLocal !== undefined && selectedFile !== undefined) {
+        //     setSegments(audioSegmentsLocal);
+        // }
+    },[])
+
     useEffect(() => {
         if (showAlert) {
             setTimeout(() => {
@@ -77,7 +88,13 @@ export default function LocalWaveform() {
     };
 
     const addAudioSegment = () => {
-        setSegments([...segments,{id:crypto.randomUUID(),start:selectedStart,end:selectedEnd}])
+        const audioSegments = [...segments,{
+            id:crypto.randomUUID(),
+            start:selectedStart,
+            end:selectedEnd
+        }]
+        setSegments(audioSegments)
+        localStorage.setItem('audioSegments', JSON.stringify(audioSegments))
         setShowAlert(true)
     }
 
@@ -85,36 +102,7 @@ export default function LocalWaveform() {
         setSegments(segments.filter(segment => segment.id !== id))
     }
 
-    const transcribe = async () => {
-        try {
-            setLoading(true);
-            const res = await axios.post('/api/transcribe', {
-                audio: selectedFile
-            }, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                },
-                responseType:'blob'
-            })
-            const url = window.URL.createObjectURL(new Blob([res.data]));
-            const link = document.createElement("a");
-            link.href = url;
 
-
-            link.setAttribute("download", `output.zip`);
-
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-
-            window.URL.revokeObjectURL(url);
-            setLoading(false)
-         }
-        catch (e) {
-            console.error("Error Transcribing audio",e)
-            setLoading(false)
-        }
-    }
     const transcribeSegments = async () => {
         try {
             setLoading(true);
