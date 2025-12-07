@@ -23,13 +23,31 @@ export default function LocalWaveform() {
 
 
     useEffect(() => {
-        //todo load filename from /upload upon refresh
 
-        // const audioSegmentsLocal = JSON.parse(localStorage.getItem("audioSegments"))
-        // console.log({ selectedFile,audioSegmentsLocal })
-        // if (audioSegmentsLocal !== undefined && selectedFile !== undefined) {
-        //     setSegments(audioSegmentsLocal);
-        // }
+        const getAudioFile = async filename => {
+            const config = {
+                allowAbsoluteUrls: true,
+                responseType: 'blob'
+            }
+            const res = await axios.get(`/api/upload/get/${filename}`,config);
+            if (res.status === 200) {
+                const blob = res.data;
+                const file = new File([blob], filename)
+                const url = URL.createObjectURL(blob);
+                setSelectedFile(file);
+                setFileUrl((prev) => {
+                        if (prev) URL.revokeObjectURL(prev);
+                        return url;
+                });
+                setSelectedFile(file);
+                setSegments(audioSegmentsLocal);
+            }
+        }
+        const audioSegmentsLocal = JSON.parse(localStorage.getItem("audioSegments"))
+        const filename = localStorage.getItem("filename");
+
+        getAudioFile(filename).then()
+        // if (!nullOrUndefined(audioSegmentsLocal) && !nullOrUndefined(filename)) getAudioFile(filename).then()
     },[])
 
     useEffect(() => {
@@ -41,7 +59,6 @@ export default function LocalWaveform() {
     },[showAlert])
     const onMount = (ws) => {
         wsRef.current = ws;
-
         // Register the Regions plugin (returns the plugin instance)
         regionsRef.current = ws.registerPlugin(RegionsPlugin.create());
         zoomRef.current = ws.registerPlugin(ZoomPlugin.create({
@@ -76,15 +93,36 @@ export default function LocalWaveform() {
         });
     };
 
-    const handleFile = (e) => {
+    const handleFile = async e => {
         const f = e.target.files?.[0];
         if (!f) return;
-        const url = URL.createObjectURL(f);
-        setSelectedFile(f);
-        setFileUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return url;
-        });
+        try {
+            const res = await axios.post('/api/upload',
+                {
+                    audio: f
+                },
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    },
+                }
+            )
+            if (res.status === 200 ) {
+                const url = URL.createObjectURL(f);
+                setSelectedFile(f);
+
+                setFileUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return url;
+                });
+                localStorage.setItem("filename",res.data.filename);
+            } else {
+                console.error("Failed to upload file");
+            }
+
+        } catch (e) {
+            console.error("An error occurred while uploading", e);
+        }
     };
 
     const addAudioSegment = () => {
