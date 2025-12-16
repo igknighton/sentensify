@@ -46,8 +46,7 @@ export default function LocalWaveform() {
         const audioSegmentsLocal = JSON.parse(localStorage.getItem("audioSegments"))
         const filename = localStorage.getItem("filename");
 
-        getAudioFile(filename).then()
-        // if (!nullOrUndefined(audioSegmentsLocal) && !nullOrUndefined(filename)) getAudioFile(filename).then()
+        if (audioSegmentsLocal != null && filename != null) getAudioFile(filename).then()
     },[])
 
     useEffect(() => {
