@@ -106,6 +106,11 @@ export default function LocalWaveform() {
     const handleFile = async e => {
         const f = e.target.files?.[0];
         if (!f) return;
+        if (!f.type.includes("audio") && !f.type.includes("video")) {
+            setError(true)
+            setErrMsg("File must be an audio or video file");
+            return;
+        }
         try {
             const res = await axios.post('/api/upload',
                 {
@@ -125,7 +130,6 @@ export default function LocalWaveform() {
                     if (prev) URL.revokeObjectURL(prev);
                     return url;
                 });
-                console.log("Response filename",res.data.filename)
                 localStorage.setItem("filename",res.data.filename);
             } else {
                 console.error("Failed to upload file");
@@ -150,7 +154,9 @@ export default function LocalWaveform() {
     }
 
     const removeAudioSegment = id => {
-        setSegments(segments.filter(segment => segment.id !== id))
+        const updatedSegments = segments.filter(segment => segment.id !== id)
+        setSegments(updatedSegments)
+        localStorage.setItem('audioSegments', JSON.stringify(updatedSegments))
     }
 
 
