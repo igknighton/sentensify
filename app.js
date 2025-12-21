@@ -68,8 +68,6 @@ app.get('/api/upload/get/:filename', (req,res,next) => {
 })
 
 app.post('/api/upload',upload.single("audio"),(req,res) => {
-    console.log("Files",req.file);
-    console.log(req.body);
     res.json({filename:req.file.filename})
 })
 

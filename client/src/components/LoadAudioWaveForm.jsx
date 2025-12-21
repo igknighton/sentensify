@@ -35,7 +35,6 @@ export default function LocalWaveform() {
                 const blob = res.data;
                 const file = new File([blob], filename)
                 const url = URL.createObjectURL(blob);
-                setSelectedFile(file);
                 setFileUrl((prev) => {
                         if (prev) URL.revokeObjectURL(prev);
                         return url;
@@ -95,6 +94,8 @@ export default function LocalWaveform() {
 
     const handleFile = async e => {
         const f = e.target.files?.[0];
+        console.log("handlefile f variable",f)
+        console.log("Get Type", typeof f)
         if (!f) return;
         try {
             const res = await axios.post('/api/upload',
@@ -115,6 +116,7 @@ export default function LocalWaveform() {
                     if (prev) URL.revokeObjectURL(prev);
                     return url;
                 });
+                console.log("Response filename",res.data.filename)
                 localStorage.setItem("filename",res.data.filename);
             } else {
                 console.error("Failed to upload file");
