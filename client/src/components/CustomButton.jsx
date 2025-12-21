@@ -3,7 +3,7 @@ import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 
 
-const ColorButton = styled(Button)(({ }) => ({
+const ColorButton = styled(Button)(() => ({
     color: "#ffffff",
     backgroundColor: "#5e6a5b",
     '&:hover': {

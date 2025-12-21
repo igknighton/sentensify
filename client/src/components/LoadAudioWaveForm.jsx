@@ -19,6 +19,7 @@ export default function LocalWaveform() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
+    const ALERT_DURATION_MS = 2000;
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
 
@@ -53,7 +54,7 @@ export default function LocalWaveform() {
         if (showAlert) {
             setTimeout(() => {
                 setShowAlert(false);
-            }, 2000);
+            }, ALERT_DURATION_MS);
         }
     },[showAlert])
     const onMount = (ws) => {
@@ -164,6 +165,8 @@ export default function LocalWaveform() {
             link.remove();
 
             window.URL.revokeObjectURL(url);
+            localStorage.removeItem("audioSegments");
+            localStorage.removeItem("filename");
             setLoading(false)
         }
         catch (e) {
