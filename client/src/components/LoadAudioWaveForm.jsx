@@ -28,6 +28,10 @@ export default function LocalWaveform() {
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
 
+    const clearError = () => {
+        setError(false);
+        setErrMsg('')
+    }
     useEffect(() => {
 
         const getAudioFile = async filename => {
@@ -104,6 +108,7 @@ export default function LocalWaveform() {
     };
 
     const handleFile = async e => {
+        clearError()
         const f = e.target.files?.[0];
         if (!f) return;
         if (!f.type.includes("audio") && !f.type.includes("video")) {
@@ -162,6 +167,7 @@ export default function LocalWaveform() {
 
     const transcribeSegments = async () => {
         try {
+            clearError();
             setLoading(true);
             const res = await axios.post('/api/transcribe', {
                 audio: selectedFile,
@@ -205,7 +211,7 @@ export default function LocalWaveform() {
                     color="inherit"
                     size="small"
                     onClick={() => {
-                        setError(false);
+                       clearError()
                     }}
                 >
                     <CloseIcon fontSize="inherit" />
