@@ -28,6 +28,10 @@
     margin-right: 5px;
 }
 
-.alert-text {
+.alert-success {
     color: chartreuse;
+}
+
+.alert-danger {
+    color: red;
 }

@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import WavesurferPlayer from "@wavesurfer/react";
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
 import ZoomPlugin from "wavesurfer.js/plugins/zoom";
-import {useRef} from "react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import Stack from '@mui/material/Stack';
 import axios from "axios";
 import CustomButton from "./CustomButton.jsx";
+import Alert from '@mui/material/Alert';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
+
 export default function LocalWaveform() {
     const wsRef = useRef(null);
     const regionsRef = useRef(null);
@@ -19,6 +22,8 @@ export default function LocalWaveform() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
+    const [error, setError] = useState(false);
+    const [errMsg, setErrMsg] = useState('');
     const ALERT_DURATION_MS = 2000;
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
@@ -26,21 +31,27 @@ export default function LocalWaveform() {
     useEffect(() => {
 
         const getAudioFile = async filename => {
-            const config = {
-                allowAbsoluteUrls: true,
-                responseType: 'blob'
-            }
-            const res = await axios.get(`/api/upload/get/${filename}`,config);
-            if (res.status === 200) {
-                const blob = res.data;
-                const file = new File([blob], filename)
-                const url = URL.createObjectURL(blob);
-                setFileUrl((prev) => {
+            try {
+                const config = {
+                    allowAbsoluteUrls: true,
+                    responseType: 'blob'
+                }
+                const res = await axios.get(`/api/upload/get/${filename}`, config);
+                if (res.status === 200) {
+                    const blob = res.data;
+                    const file = new File([blob], filename)
+                    const url = URL.createObjectURL(blob);
+                    setFileUrl((prev) => {
                         if (prev) URL.revokeObjectURL(prev);
                         return url;
-                });
-                setSelectedFile(file);
-                setSegments(audioSegmentsLocal);
+                    });
+                    setSelectedFile(file);
+                    setSegments(audioSegmentsLocal);
+                }
+            } catch (e) {
+                setError(true);
+                setErrMsg("Failed to locate file")
+                console.error("Failed to locate file",e)
             }
         }
         const audioSegmentsLocal = JSON.parse(localStorage.getItem("audioSegments"))
@@ -94,8 +105,6 @@ export default function LocalWaveform() {
 
     const handleFile = async e => {
         const f = e.target.files?.[0];
-        console.log("handlefile f variable",f)
-        console.log("Get Type", typeof f)
         if (!f) return;
         try {
             const res = await axios.post('/api/upload',
@@ -124,6 +133,8 @@ export default function LocalWaveform() {
 
         } catch (e) {
             console.error("An error occurred while uploading", e);
+            setError(true)
+            setErrMsg("Failed to upload file")
         }
     };
 
@@ -172,6 +183,8 @@ export default function LocalWaveform() {
             setLoading(false)
         }
         catch (e) {
+            setError(true)
+            setErrMsg('Error Transcribing Audio')
             console.error("Error Transcribing audio",e)
             setLoading(false)
         }
@@ -179,6 +192,22 @@ export default function LocalWaveform() {
 
     return (
         <div className="max-w-xl mx-auto p-4">
+            {
+                error && <Alert
+                action={<IconButton
+                    aria-label="close"
+                    color="inherit"
+                    size="small"
+                    onClick={() => {
+                        setError(false);
+                    }}
+                >
+                    <CloseIcon fontSize="inherit" />
+                </IconButton>}
+                    variant={"filled"} severity="error">
+                    {errMsg}
+                </Alert>
+            }
             <input type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
             <WavesurferPlayer
                 url={fileUrl || undefined}
@@ -197,7 +226,7 @@ export default function LocalWaveform() {
                     <div>
                         {
                             wsRef.current && <>
-                                {showAlert ? <p className={'alert-text'}>Audio Segment Added!</p> :
+                                {showAlert ? <p className={'alert-success'}>Audio Segment Added!</p> :
                                     <p>Scroll on audio to zoom in/out</p>}
                             </>
                         }
