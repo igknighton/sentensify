@@ -103,7 +103,7 @@ export const main = async (filePath, audioSegments = []) => {
         const requestDir = path.join(os.tmpdir(), `sentensify-${directoryUUID}`);
         await ensureDir(requestDir);
         await ensureDir(path.join(requestDir, "audioClips"));
-
+        const AUDIO_PADDING_SECONDS = 0.3;
         const transcribeData = await transcribe(filePath, audioSegments,requestDir);
 
 
@@ -118,7 +118,7 @@ export const main = async (filePath, audioSegments = []) => {
             const sentences = paragraph.sentences;
             for (const sentence of sentences) {
                 const startTime = sentence.start;
-                const endTime = sentence.end += 0.3;
+                const endTime = sentence.end += AUDIO_PADDING_SECONDS;
                 const sentenceId = i;
                 ++i;
                 const segmentName = `${segmentGuid}_${sentenceId}.mp3`;

@@ -52,7 +52,6 @@ app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
 })
 
 app.get('/api/upload/get/:filename', (req,res,next) => {
-
     const filename = req.params.filename;
     console.log("file name",filename);
     const filePath= path.join(__dirname, 'uploads', filename);
