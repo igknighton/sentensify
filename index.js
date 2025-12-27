@@ -106,7 +106,7 @@ export const main = async (filePath, audioSegments = []) => {
         await ensureDir(path.join(requestDir, "audioClips"));
         const AUDIO_PADDING_SECONDS = 0.3;
         const transcribeData = await transcribe(filePath, audioSegments,requestDir);
-
+        const limit = pLimit(5); // run ffmpeg commands at once
 
         const metadata = await ffprobeAsync(filePath);
         console.log(`Audio duration: ${metadata.format.duration}s`);
@@ -127,9 +127,9 @@ export const main = async (filePath, audioSegments = []) => {
                 const outputPath = path.join(requestDir + '/audioClips', segmentName);
 
                 clipJobs.push(
-                    exportClip(filePath, startTime, endTime, outputPath).then(() => {
+                    limit(() => exportClip(filePath, startTime, endTime, outputPath).then(() => {
                         console.log(`sentence ${sentenceId}`)
-                    })
+                    }))
                 )
             }
         }
