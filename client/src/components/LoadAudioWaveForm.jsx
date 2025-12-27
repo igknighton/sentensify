@@ -3,13 +3,15 @@ import WavesurferPlayer from "@wavesurfer/react";
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
 import ZoomPlugin from "wavesurfer.js/plugins/zoom";
 import DeleteIcon from '@mui/icons-material/Delete';
-import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Stack from '@mui/material/Stack';
 import axios from "axios";
 import CustomButton from "./CustomButton.jsx";
 import Alert from '@mui/material/Alert';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import Chip from '@mui/material/Chip';
+import {Tooltip} from "@mui/material";
 
 export default function LocalWaveform() {
     const wsRef = useRef(null);
@@ -202,6 +204,19 @@ export default function LocalWaveform() {
         }
     }
 
+
+    const theme = createTheme({
+        palette: {
+            primary: {
+                light: '#dee0df',
+                main: '#6c6c6c',
+                dark: '#484747',
+                contrastText: '#fff',
+            }
+        },
+    });
+
+
     return (
         <div className="max-w-xl mx-auto p-4">
             {
@@ -268,19 +283,27 @@ export default function LocalWaveform() {
                             </CustomButton>
                         </Stack>
 
-                        <ul>
-                            {
-                                segments.map((segment) => (
-                                    <div className={'audioSegment'} key={segment.id}>
-                                        <div className={'timeSegment'}>{segment.start.toFixed(2)} - {segment.end.toFixed(2)}</div>
-                                        <div>
-                                            <PlayCircleIcon color={'success'} onClick={() => wsRef.current?.play(segment.start,segment.end)}/>
-                                            <DeleteIcon color={'error'} onClick={() => removeAudioSegment(segment.id)}/>
+                        <ThemeProvider theme={theme}>
+                            <ul>
+                                {
+                                    segments.map((segment) => (
+                                        <div className={'audioSegment'} key={segment.id}>
+                                            <Tooltip title={'Click to play audio segment'} arrow placement={'right'}>
+                                                <Stack direction="row" key={segment.id}>
+                                                    <Chip
+                                                        label={segment.start.toFixed(2) + ' - ' + segment.end.toFixed(2)}
+                                                        onClick={() => wsRef.current?.play(segment.start, segment.end)}
+                                                        onDelete={() => removeAudioSegment(segment.id)}
+                                                        deleteIcon={<DeleteIcon color={'error'}/>}
+                                                        color="primary"
+                                                    />
+                                                </Stack>
+                                            </Tooltip>
                                         </div>
-                                    </div>
-                                ))
-                            }
-                        </ul>
+                                    ))
+                                }
+                            </ul>
+                        </ThemeProvider>
                     </div>
             }
         </div>
