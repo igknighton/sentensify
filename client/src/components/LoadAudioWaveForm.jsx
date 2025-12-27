@@ -147,7 +147,6 @@ export default function LocalWaveform() {
             )
             if (res.status === 200 ) {
                 const url = URL.createObjectURL(f);
-                console.log("File",f)
                 setSelectedFile(f);
 
                 setFileUrl((prev) => {
@@ -157,6 +156,9 @@ export default function LocalWaveform() {
                 const fName = res.data.filename
                 localStorage.setItem("filename",fName);
                 setFilename(fName)
+                //clears old audio segments from previous file
+                setSegments([])
+                localStorage.removeItem('audioSegments');
             } else {
                 console.error("Failed to upload file");
             }
