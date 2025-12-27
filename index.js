@@ -6,13 +6,14 @@ import os from "os";
 import  { convertArrayToCSV } from 'convert-array-to-csv';
 import { randomUUID } from "node:crypto";
 import {createClient} from "@deepgram/sdk";
+import pLimit from "p-limit";
 
 const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
 
 const transcribe = async (filePath,audioSegments,requestDir) => {
 
     const {result, error} = await deepgramClient.listen.prerecorded.transcribeFile(
-        fs.readFileSync(filePath),
+        fs.createReadStream(filePath),
         {
             model: "nova-3",
             smart_format: true,
