@@ -22,6 +22,7 @@ export default function LocalWaveform() {
     const [selectedEnd, setSelectedEnd] = useState(1);
     const [segments, setSegments] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [filename,setFilename] = useState(null);
     const [loading, setLoading] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
     const [error, setError] = useState(false);
@@ -53,6 +54,7 @@ export default function LocalWaveform() {
                     });
                     setSelectedFile(file);
                     setSegments(audioSegmentsLocal);
+                    setFilename(filename)
                 }
             } catch (e) {
                 setError(true);
@@ -145,13 +147,16 @@ export default function LocalWaveform() {
             )
             if (res.status === 200 ) {
                 const url = URL.createObjectURL(f);
+                console.log("File",f)
                 setSelectedFile(f);
 
                 setFileUrl((prev) => {
                     if (prev) URL.revokeObjectURL(prev);
                     return url;
                 });
-                localStorage.setItem("filename",res.data.filename);
+                const fName = res.data.filename
+                localStorage.setItem("filename",fName);
+                setFilename(fName)
             } else {
                 console.error("Failed to upload file");
             }
@@ -185,13 +190,14 @@ export default function LocalWaveform() {
         try {
             clearError();
             setLoading(true);
+            console.log("filename",filename)
             const res = await axios.post('/api/transcribe', {
-                audio: selectedFile,
+                filename,
                 segments
             }, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                },
+                // headers: {
+                //     'Content-Type': 'multipart/form-data'
+                // },
                 responseType:'blob'
             })
             const url = window.URL.createObjectURL(new Blob([res.data]));

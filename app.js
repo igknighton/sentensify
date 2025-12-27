@@ -2,11 +2,12 @@ import express from 'express';
 import archiver from 'archiver';
 import multer from 'multer';
 import {main} from "./index.js";
-import path from "path";
+import path, {basename} from "path";
 import {fileURLToPath} from "url"
 import {dirname} from "path";
 import fs from "fs";
 const app = express()
+app.use(express.json())
 const port = 3000
 // This function converts the current module's file URL into a file path.
 const __filename = fileURLToPath(import.meta.url);
@@ -29,12 +30,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
+app.post('/api/transcribe', async (req, res) => {
     let audioSegments = []
+    let filename = '';
     if (req.body.segments !== undefined) {
         audioSegments = req.body.segments
+        filename = req.body.filename
     }
-    const requestDir = await main(req.file.path,audioSegments);
+    const requestDir = await main(`./uploads/${filename}`,audioSegments);
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(
@@ -49,6 +52,7 @@ app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     archive.directory(requestDir, false);
     await archive.finalize();
     fs.rmSync(requestDir, { recursive: true, force: true });
+    fs.rmSync(`./uploads/${filename}`,{ recursive: true, force: true });
 })
 
 app.get('/api/upload/get/:filename', (req,res,next) => {
