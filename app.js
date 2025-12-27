@@ -34,7 +34,7 @@ app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     if (req.body.segments !== undefined) {
         audioSegments = req.body.segments
     }
-    await main(req.file.path,audioSegments);
+    const requestDir = await main(req.file.path,audioSegments);
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(
@@ -46,9 +46,9 @@ app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     archive.on("error", (err) => res.status(500).send(err.message));
 
     archive.pipe(res);
-    archive.directory('output', false);
+    archive.directory(requestDir, false);
     await archive.finalize();
-    fs.rmSync('output', { recursive: true, force: true });
+    fs.rmSync(requestDir, { recursive: true, force: true });
 })
 
 app.get('/api/upload/get/:filename', (req,res,next) => {

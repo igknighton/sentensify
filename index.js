@@ -2,14 +2,14 @@ import 'dotenv/config';
 import ffmpeg from "fluent-ffmpeg";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import  { convertArrayToCSV } from 'convert-array-to-csv';
 import { randomUUID } from "node:crypto";
 import {createClient} from "@deepgram/sdk";
 
 const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
-const outputDir = './output';
 
-const transcribe = async (filePath,audioSegments) => {
+const transcribe = async (filePath,audioSegments,requestDir) => {
 
     const {result, error} = await deepgramClient.listen.prerecorded.transcribeFile(
         fs.readFileSync(filePath),
@@ -27,7 +27,7 @@ const transcribe = async (filePath,audioSegments) => {
         const transcriptionObj = results.channels[0]['alternatives'][0]
 
         // export transcribe data
-        await fs.writeFile(outputDir+'/transcribe_data.json',JSON.stringify(results),'',(err)=> {
+        await fs.writeFile(requestDir+'/transcribe_data.json',JSON.stringify(results),'',(err)=> {
             if (err) {
                 console.error('Error writing file:', err);
                 return;
@@ -98,10 +98,13 @@ const exportClip = (srcPath, start, end, outPath) =>
 
 export const main = async (filePath, audioSegments = []) => {
     try {
-        await ensureDir(outputDir);
-        await ensureDir(path.join(outputDir, "audioClips"));
+        const directoryUUID = randomUUID();
+        // creating unique dir for each request to prevent race condition
+        const requestDir = path.join(os.tmpdir(), `sentensify-${directoryUUID}`);
+        await ensureDir(requestDir);
+        await ensureDir(path.join(requestDir, "audioClips"));
 
-        const transcribeData = await transcribe(filePath, audioSegments);
+        const transcribeData = await transcribe(filePath, audioSegments,requestDir);
 
 
         const metadata = await ffprobeAsync(filePath);
@@ -120,7 +123,7 @@ export const main = async (filePath, audioSegments = []) => {
                 ++i;
                 const segmentName = `${segmentGuid}_${sentenceId}.mp3`;
                 sentence['sentenceAudioName'] = segmentName;
-                const outputPath = path.join(outputDir + '/audioClips', segmentName);
+                const outputPath = path.join(requestDir + '/audioClips', segmentName);
 
                 clipJobs.push(
                     exportClip(filePath, startTime, endTime, outputPath).then(() => {
@@ -137,10 +140,11 @@ export const main = async (filePath, audioSegments = []) => {
                 [sentence.text, " ", `[sound:${sentence.sentenceAudioName}]`]),
             {separator: ','}
         )
-        await fs.writeFile(path.join(outputDir, "sentences.csv"), csv, err => {
+        await fs.writeFile(path.join(requestDir, "sentences.csv"), csv, err => {
             console.error(err);
         });
         console.log('CSV saved!');
+        return requestDir;
     } catch (e) {
         console.error("An error occurred",e)
     }
