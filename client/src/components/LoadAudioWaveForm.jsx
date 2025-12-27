@@ -199,7 +199,7 @@ export default function LocalWaveform() {
             link.href = url;
 
 
-            link.setAttribute("download", `output.zip`);
+            link.setAttribute("download", `${crypto.randomUUID()}.zip`);
 
             document.body.appendChild(link);
             link.click();

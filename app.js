@@ -39,7 +39,7 @@ app.post('/api/transcribe',upload.single("audio"), async (req, res) => {
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(
         "Content-Disposition",
-        `attachment; filename="output.zip"`
+        `attachment; filename="${path.basename(requestDir)}.zip"`
     );
 
     const archive = archiver("zip", { zlib: { level: 9 } });
