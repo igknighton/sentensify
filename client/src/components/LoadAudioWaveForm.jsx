@@ -3,6 +3,7 @@ import WavesurferPlayer from "@wavesurfer/react";
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
 import ZoomPlugin from "wavesurfer.js/plugins/zoom";
 import DeleteIcon from '@mui/icons-material/Delete';
+import languages from "../types/languages.js";
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Stack from '@mui/material/Stack';
 import axios from "axios";
