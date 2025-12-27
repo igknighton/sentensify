@@ -81,13 +81,12 @@ export default function LocalWaveform() {
             scale:0.5,
             maxZoom:100
         }));
-        const currentStartSegment =localStorage.getItem("currentStartSegment");
+        const currentStartSegment = localStorage.getItem("currentStartSegment");
         const currentEndSegment = localStorage.getItem("currentEndSegment");
         // Handy region events
         regionsRef.current.on("region-created", (r) => {
 
             if (currentStartSegment && currentEndSegment ) {
-                console.log("Setting saved segment number")
                 setSelectedStart(Number(currentStartSegment))
                 setSelectedEnd(Number(currentEndSegment))
             }
