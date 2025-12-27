@@ -32,12 +32,18 @@ const upload = multer({ storage });
 
 app.post('/api/transcribe', async (req, res) => {
     let audioSegments = []
-    let filename = '';
+    let filename = req.body.filename || '';
     if (req.body.segments !== undefined) {
         audioSegments = req.body.segments
         filename = req.body.filename
     }
-    const requestDir = await main(`./uploads/${filename}`,audioSegments);
+    filename = path.basename(filename);
+    const filePath = path.join(__dirname, 'uploads' ,filename);
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).send("File not found");
+    }
+    const requestDir = await main(filePath,audioSegments);
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(
@@ -51,8 +57,6 @@ app.post('/api/transcribe', async (req, res) => {
     archive.pipe(res);
     archive.directory(requestDir, false);
     await archive.finalize();
-    fs.rmSync(requestDir, { recursive: true, force: true });
-    fs.rmSync(`./uploads/${filename}`,{ recursive: true, force: true });
 })
 
 app.get('/api/upload/get/:filename', (req,res,next) => {
