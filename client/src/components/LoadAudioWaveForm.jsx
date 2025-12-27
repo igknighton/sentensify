@@ -81,15 +81,29 @@ export default function LocalWaveform() {
             scale:0.5,
             maxZoom:100
         }));
-
+        const currentStartSegment =localStorage.getItem("currentStartSegment");
+        const currentEndSegment = localStorage.getItem("currentEndSegment");
         // Handy region events
         regionsRef.current.on("region-created", (r) => {
-            setSelectedStart(r.start)
-            setSelectedEnd(r.end)
+
+            if (currentStartSegment && currentEndSegment ) {
+                console.log("Setting saved segment number")
+                setSelectedStart(Number(currentStartSegment))
+                setSelectedEnd(Number(currentEndSegment))
+            }
+            else {
+                setSelectedStart(r.start)
+                setSelectedEnd(r.end)
+            }
         });
         regionsRef.current.on("region-updated", (r) => {
-            setSelectedStart(r.start)
-            setSelectedEnd(r.end)
+            const start = r.start;
+            const end = r.end;
+            setSelectedStart(start)
+            setSelectedEnd(end)
+            localStorage.setItem('currentStartSegment',start)
+            localStorage.setItem('currentEndSegment',end)
+
         });
         regionsRef.current.on("region-clicked", (r, e) => {
             e.stopPropagation();
@@ -97,12 +111,13 @@ export default function LocalWaveform() {
         });
 
 
+
         ws.on("ready", () => {
             const dur = ws.getDuration();
             if (dur > 1.5) {
                 regionsRef.current.addRegion({
-                    start: Math.max(0, dur * 0.1),
-                    end: Math.min(dur, dur * 0.25),
+                    start: currentStartSegment ? currentStartSegment : Math.max(0, dur * 0.1),
+                    end: currentEndSegment ? currentEndSegment: Math.min(dur, dur * 0.25),
                     color: "rgba(150, 205, 255, .25)",
                 });
             }
@@ -194,6 +209,8 @@ export default function LocalWaveform() {
             window.URL.revokeObjectURL(url);
             localStorage.removeItem("audioSegments");
             localStorage.removeItem("filename");
+            localStorage.removeItem("currentStartSegment");
+            localStorage.removeItem("currentEndSegment");
             setLoading(false)
         }
         catch (e) {
