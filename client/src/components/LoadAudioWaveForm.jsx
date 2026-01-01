@@ -80,7 +80,7 @@ export default function LocalWaveform() {
             scale:0.5,
             maxZoom:100
         }));
-        //todo refactor localstorage values
+
         const currentStartSegment = localStorage.getItem("currentStartSegment");
         const currentEndSegment = localStorage.getItem("currentEndSegment");
         // Handy region events
