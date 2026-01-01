@@ -141,7 +141,7 @@ export const main = async (filePath, audioSegments = []) => {
                 [sentence.text, " ", `[sound:${sentence.sentenceAudioName}]`]),
             {separator: ','}
         )
-        await fs.writeFile(path.join(requestDir, "sentences.csv"), csv, err => {
+        await fs.promises.writeFile(path.join(requestDir, "sentences.csv"), csv, err => {
             console.error(err);
         });
         console.log('CSV saved!');
