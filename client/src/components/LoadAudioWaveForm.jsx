@@ -21,9 +21,9 @@ export default function LocalWaveform() {
     const [fileUrl, setFileUrl] = useState(null);
     const [selectedStart, setSelectedStart] = useState(0);
     const [selectedEnd, setSelectedEnd] = useState(1);
-    const [segments, setSegments] = useState([]);
+    const [segments, setSegments] = useState(JSON.parse(localStorage.getItem("audioSegments"))??[]);
     const [selectedFile, setSelectedFile] = useState(null);
-    const [filename,setFilename] = useState(null);
+    const [filename,setFilename] = useState(() =>localStorage.getItem('filename'))??null;
     const [loading, setLoading] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
     const [error, setError] = useState(false);
@@ -54,8 +54,6 @@ export default function LocalWaveform() {
                         return url;
                     });
                     setSelectedFile(file);
-                    setSegments(audioSegmentsLocal);
-                    setFilename(filename)
                 }
             } catch (e) {
                 setError(true);
@@ -63,10 +61,8 @@ export default function LocalWaveform() {
                 console.error("Failed to locate file",e)
             }
         }
-        const audioSegmentsLocal = JSON.parse(localStorage.getItem("audioSegments"))
-        const filename = localStorage.getItem("filename");
 
-        if (audioSegmentsLocal != null && filename != null) getAudioFile(filename).then()
+        if (segments != null && filename != null) getAudioFile(filename).then()
     },[])
 
     useEffect(() => {
@@ -84,6 +80,7 @@ export default function LocalWaveform() {
             scale:0.5,
             maxZoom:100
         }));
+        //todo refactor localstorage values
         const currentStartSegment = localStorage.getItem("currentStartSegment");
         const currentEndSegment = localStorage.getItem("currentEndSegment");
         // Handy region events
