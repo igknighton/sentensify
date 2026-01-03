@@ -8,6 +8,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Stack from '@mui/material/Stack';
 import axios from "axios";
 import CustomButton from "./CustomButton.jsx";
+import Loader from "./Loader.jsx";
 import Alert from '@mui/material/Alert';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
@@ -15,6 +16,7 @@ import Chip from '@mui/material/Chip';
 import {Tooltip} from "@mui/material";
 
 export default function LocalWaveform() {
+    //todo cleanup loading states
     const wsRef = useRef(null);
     const regionsRef = useRef(null);
     const zoomRef = useRef(null);
@@ -190,14 +192,10 @@ export default function LocalWaveform() {
         try {
             clearError();
             setLoading(true);
-            console.log("filename",filename)
             const res = await axios.post('/api/transcribe', {
                 filename,
                 segments
             }, {
-                // headers: {
-                //     'Content-Type': 'multipart/form-data'
-                // },
                 responseType:'blob'
             })
             const url = window.URL.createObjectURL(new Blob([res.data]));
