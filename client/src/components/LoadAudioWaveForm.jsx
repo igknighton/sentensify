@@ -1,7 +1,5 @@
 import React, {useEffect, useRef, useState} from "react";
 import WavesurferPlayer from "@wavesurfer/react";
-import RegionsPlugin from "wavesurfer.js/plugins/regions";
-import ZoomPlugin from "wavesurfer.js/plugins/zoom";
 import DeleteIcon from '@mui/icons-material/Delete';
 import languages from "../types/languages.js";
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -14,15 +12,18 @@ import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import Chip from '@mui/material/Chip';
 import {Tooltip} from "@mui/material";
+import useWaveSurfer from "../hooks/useWaveSurfer.jsx";
 
 export default function LocalWaveform() {
     //todo cleanup loading states
-    const wsRef = useRef(null);
-    const regionsRef = useRef(null);
-    const zoomRef = useRef(null);
+
     const [fileUrl, setFileUrl] = useState(null);
-    const [selectedStart, setSelectedStart] = useState(0);
-    const [selectedEnd, setSelectedEnd] = useState(1);
+
+    const {
+        selectedStart, selectedEnd,
+        regionsRef,wsRef,
+        onMount
+    } = useWaveSurfer();
     const [segments, setSegments] = useState(JSON.parse(localStorage.getItem("audioSegments"))??[]);
     const [selectedFile, setSelectedFile] = useState(null);
     const [filename,setFilename] = useState(() =>localStorage.getItem('filename'))??null;
@@ -74,56 +75,7 @@ export default function LocalWaveform() {
             }, ALERT_DURATION_MS);
         }
     },[showAlert])
-    const onMount = (ws) => {
-        wsRef.current = ws;
-        // Register the Regions plugin (returns the plugin instance)
-        regionsRef.current = ws.registerPlugin(RegionsPlugin.create());
-        zoomRef.current = ws.registerPlugin(ZoomPlugin.create({
-            scale:0.5,
-            maxZoom:100
-        }));
 
-        const currentStartSegment = localStorage.getItem("currentStartSegment");
-        const currentEndSegment = localStorage.getItem("currentEndSegment");
-        // Handy region events
-        regionsRef.current.on("region-created", (r) => {
-
-            if (currentStartSegment && currentEndSegment ) {
-                setSelectedStart(Number(currentStartSegment))
-                setSelectedEnd(Number(currentEndSegment))
-            }
-            else {
-                setSelectedStart(r.start)
-                setSelectedEnd(r.end)
-            }
-        });
-        regionsRef.current.on("region-updated", (r) => {
-            const start = r.start;
-            const end = r.end;
-            setSelectedStart(start)
-            setSelectedEnd(end)
-            localStorage.setItem('currentStartSegment',start)
-            localStorage.setItem('currentEndSegment',end)
-
-        });
-        regionsRef.current.on("region-clicked", (r, e) => {
-            e.stopPropagation();
-            ws.play(r.start, r.end);
-        });
-
-
-
-        ws.on("ready", () => {
-            const dur = ws.getDuration();
-            if (dur > 1.5) {
-                regionsRef.current.addRegion({
-                    start: currentStartSegment ? currentStartSegment : Math.max(0, dur * 0.1),
-                    end: currentEndSegment ? currentEndSegment: Math.min(dur, dur * 0.25),
-                    color: "rgba(150, 205, 255, .25)",
-                });
-            }
-        });
-    };
 
     const handleFile = async e => {
         clearError()
