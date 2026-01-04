@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useState} from "react";
 import WavesurferPlayer from "@wavesurfer/react";
 import DeleteIcon from '@mui/icons-material/Delete';
 import languages from "../types/languages.js";
