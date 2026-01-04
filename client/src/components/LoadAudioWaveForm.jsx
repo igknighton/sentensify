@@ -1,8 +1,7 @@
-import React, {useEffect, useState} from "react";
+import React from "react";
 import WavesurferPlayer from "@wavesurfer/react";
 import languages from "../types/languages.js";
 import Stack from '@mui/material/Stack';
-import axios from "axios";
 import CustomButton from "./CustomButton.jsx";
 import Loader from "./Loader.jsx";
 import Alert from '@mui/material/Alert';
@@ -10,168 +9,24 @@ import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import useWaveSurfer from "../hooks/useWaveSurfer.jsx";
 import AudioSegments from "./AudioSegments.jsx";
+import useAudioSession from "../hooks/useAudioSession.jsx";
+import useAlert from "../hooks/useAlert.jsx";
 
 export default function LocalWaveform() {
-    //todo cleanup loading states
-
-    const [fileUrl, setFileUrl] = useState(null);
 
     const {
         selectedStart, selectedEnd,
         regionsRef,wsRef,
         onMount
     } = useWaveSurfer();
-    const [segments, setSegments] = useState(() => JSON.parse(localStorage.getItem("audioSegments"))??[]);
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [filename,setFilename] = useState(() =>localStorage.getItem('filename'))??null;
-    const [loading, setLoading] = useState(false);
-    const [showAlert, setShowAlert] = useState(false);
-    const [error, setError] = useState(false);
-    const [errMsg, setErrMsg] = useState('');
-    const ALERT_DURATION_MS = 2000;
-    useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
+    const {
+        transcribeSegments,addAudioSegment,removeAudioSegment,
+        loading,filename,segments,fileUrl,
+        error,clearError,handleFile,errMsg
+    } = useAudioSession();
 
+    const {showAlert,setShowAlert} = useAlert();
 
-    const clearError = () => {
-        setError(false);
-        setErrMsg('')
-    }
-    useEffect(() => {
-
-        const getAudioFile = async filename => {
-            try {
-                const config = {
-                    allowAbsoluteUrls: true,
-                    responseType: 'blob'
-                }
-                const res = await axios.get(`/api/upload/get/${filename}`, config);
-                if (res.status === 200) {
-                    const blob = res.data;
-                    const file = new File([blob], filename)
-                    const url = URL.createObjectURL(blob);
-                    setFileUrl((prev) => {
-                        if (prev) URL.revokeObjectURL(prev);
-                        return url;
-                    });
-                    setSelectedFile(file);
-                }
-            } catch (e) {
-                setError(true);
-                setErrMsg("Failed to locate file")
-                console.error("Failed to locate file",e)
-            }
-        }
-
-        if (segments != null && filename != null) getAudioFile(filename).then()
-    },[])
-
-    useEffect(() => {
-        if (showAlert) {
-            setTimeout(() => {
-                setShowAlert(false);
-            }, ALERT_DURATION_MS);
-        }
-    },[showAlert])
-
-
-    const handleFile = async e => {
-        clearError()
-        const f = e.target.files?.[0];
-        if (!f) return;
-        if (!f.type.includes("audio") && !f.type.includes("video")) {
-            setError(true)
-            setErrMsg("File must be an audio or video file");
-            return;
-        }
-        try {
-            const res = await axios.post('/api/upload',
-                {
-                    audio: f
-                },
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    },
-                }
-            )
-            if (res.status === 200 ) {
-                const url = URL.createObjectURL(f);
-                setSelectedFile(f);
-
-                setFileUrl((prev) => {
-                    if (prev) URL.revokeObjectURL(prev);
-                    return url;
-                });
-                const fName = res.data.filename
-                localStorage.setItem("filename",fName);
-                setFilename(fName)
-                //clears old audio segments from previous file
-                setSegments([])
-                localStorage.removeItem('audioSegments');
-            } else {
-                console.error("Failed to upload file");
-            }
-
-        } catch (e) {
-            console.error("An error occurred while uploading", e);
-            setError(true)
-            setErrMsg("Failed to upload file")
-        }
-    };
-
-    const addAudioSegment = () => {
-        const audioSegments = [...segments,{
-            id:crypto.randomUUID(),
-            start:selectedStart,
-            end:selectedEnd
-        }]
-        setSegments(audioSegments)
-        localStorage.setItem('audioSegments', JSON.stringify(audioSegments))
-        setShowAlert(true)
-    }
-
-    const removeAudioSegment = id => {
-        const updatedSegments = segments.filter(segment => segment.id !== id)
-        setSegments(updatedSegments)
-        localStorage.setItem('audioSegments', JSON.stringify(updatedSegments))
-    }
-
-
-    const transcribeSegments = async () => {
-        try {
-            clearError();
-            setLoading(true);
-            const res = await axios.post('/api/transcribe', {
-                filename,
-                segments
-            }, {
-                responseType:'blob'
-            })
-            const url = window.URL.createObjectURL(new Blob([res.data]));
-            const link = document.createElement("a");
-            link.href = url;
-
-
-            link.setAttribute("download", `${crypto.randomUUID()}.zip`);
-
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-
-            window.URL.revokeObjectURL(url);
-            localStorage.removeItem("audioSegments");
-            localStorage.removeItem("filename");
-            localStorage.removeItem("currentStartSegment");
-            localStorage.removeItem("currentEndSegment");
-            setLoading(false)
-        }
-        catch (e) {
-            setError(true)
-            setErrMsg('Error Transcribing Audio')
-            console.error("Error Transcribing audio",e)
-            setLoading(false)
-        }
-    }
 
     return (
         <div className="max-w-xl mx-auto p-4">
@@ -188,7 +43,7 @@ export default function LocalWaveform() {
                     <CloseIcon fontSize="inherit" />
                 </IconButton>}
                     variant={"filled"} severity="error">
-                    {errMsg}
+                        {errMsg}
                 </Alert>
             }
             <input type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
@@ -231,7 +86,10 @@ export default function LocalWaveform() {
                             >
                                 {wsRef.current?.isPlaying() ? "Pause" : "Play Audio Segment"}
                             </CustomButton>
-                            <CustomButton onClick={addAudioSegment}  disabled={!regionsRef.current}>
+                            <CustomButton onClick={() => {
+                                addAudioSegment(selectedStart, selectedEnd)
+                                setShowAlert(true)
+                            }}  disabled={!regionsRef.current}>
                                 Add Audio Segment
                             </CustomButton>
                             <CustomButton onClick={transcribeSegments}  disabled={!regionsRef.current || segments.length === 0}>
