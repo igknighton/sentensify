@@ -29,16 +29,6 @@ export default function LocalWaveform() {
     const {showAlert,setShowAlert} = useAlert();
 
 
-    const theme = createTheme({
-        palette: {
-            primary: {
-                light: '#dee0df',
-                main: '#6c6c6c',
-                dark: '#484747',
-                contrastText: '#fff',
-            }
-        },
-    });
 
     return (
         <div className="max-w-xl mx-auto p-4">
@@ -108,13 +98,11 @@ export default function LocalWaveform() {
                                 Transcribe Audio segments
                             </CustomButton>
                         </Stack>
-                        <ThemeProvider theme={theme}>
                             <AudioSegments
                                 segments={segments}
                                 wsRef={wsRef}
                                 removeAudioSegment={removeAudioSegment}
                             />
-                        </ThemeProvider>
                     </div>
             }
         </div>
