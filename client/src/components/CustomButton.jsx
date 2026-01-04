@@ -9,6 +9,10 @@ const ColorButton = styled(Button)(() => ({
     '&:hover': {
         backgroundColor: "#40483e",
     },
+    '&.Mui-disabled': {
+        backgroundColor: "#252a24",
+        color: "#c0c0c0"
+    }
 }));
 
 export default function CustomButton(props) {
