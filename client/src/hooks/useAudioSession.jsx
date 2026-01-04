@@ -5,7 +5,7 @@ const useAudioSession = () => {
 
     //todo cleanup loading states
     const [loading, setLoading] = useState(false);
-    const [filename,setFilename] = useState(() =>localStorage.getItem('filename'))??null;
+    const [filename,setFilename] = useState(() =>localStorage.getItem('filename') ?? null);
     const [error, setError] = useState(false);
     const [errMsg, setErrMsg] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
@@ -98,30 +98,6 @@ const useAudioSession = () => {
         }
     };
 
-    const getAudioFile = async filename => {
-        try {
-            const config = {
-                allowAbsoluteUrls: true,
-                responseType: 'blob'
-            }
-            const res = await axios.get(`/api/upload/get/${filename}`, config);
-            if (res.status === 200) {
-                const blob = res.data;
-                const file = new File([blob], filename)
-                const url = URL.createObjectURL(blob);
-                setFileUrl((prev) => {
-                    if (prev) URL.revokeObjectURL(prev);
-                    return url;
-                });
-                setSelectedFile(file);
-            }
-        } catch (e) {
-            setError(true);
-            setErrMsg("Failed to locate file")
-            console.error("Failed to locate file",e)
-        }
-    }
-
     const addAudioSegment = (selectedStart,selectedEnd) => {
         const audioSegments = [...segments,{
             id:crypto.randomUUID(),
@@ -139,6 +115,29 @@ const useAudioSession = () => {
     }
 
     useEffect(() => {
+        const getAudioFile = async filename => {
+            try {
+                const config = {
+                    allowAbsoluteUrls: true,
+                    responseType: 'blob'
+                }
+                const res = await axios.get(`/api/upload/get/${filename}`, config);
+                if (res.status === 200) {
+                    const blob = res.data;
+                    const file = new File([blob], filename)
+                    const url = URL.createObjectURL(blob);
+                    setFileUrl((prev) => {
+                        if (prev) URL.revokeObjectURL(prev);
+                        return url;
+                    });
+                    setSelectedFile(file);
+                }
+            } catch (e) {
+                setError(true);
+                setErrMsg("Failed to locate file")
+                console.error("Failed to locate file",e)
+            }
+        }
         if (segments != null && filename != null) getAudioFile(filename).then()
     },[])
 

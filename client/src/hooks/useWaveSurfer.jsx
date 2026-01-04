@@ -25,6 +25,18 @@ const useWaveSurfer = () => {
         // Handy region events
         regionsRef.current.on("region-created", (r) => {
 
+
+            r.on("update", () => {
+                setSelectedStart(r.start)
+                setSelectedEnd(r.end)
+            });
+
+            r.on("update-end",() => {
+                setSelectedStart(r.start)
+                setSelectedEnd(r.end)
+                localStorage.setItem('currentStartSegment',r.start)
+                localStorage.setItem('currentEndSegment',r.end)
+            })
             if (currentStartSegment && currentEndSegment ) {
                 setSelectedStart(Number(currentStartSegment))
                 setSelectedEnd(Number(currentEndSegment))
@@ -34,22 +46,10 @@ const useWaveSurfer = () => {
                 setSelectedEnd(r.end)
             }
         });
-        regionsRef.current.on("region-updated", (r) => {
-            const start = r.start;
-            const end = r.end;
-            setSelectedStart(start)
-            setSelectedEnd(end)
-            localStorage.setItem('currentStartSegment',start)
-            localStorage.setItem('currentEndSegment',end)
-
-        });
         regionsRef.current.on("region-clicked", (r, e) => {
             e.stopPropagation();
             ws.play(r.start, r.end);
         });
-
-
-
         ws.on("ready", () => {
             const dur = ws.getDuration();
             if (dur > 1.5) {
