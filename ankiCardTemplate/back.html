@@ -1,0 +1,104 @@
+<button class="play-btn" onclick="document.querySelector('.replay-button').click();">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    Replay
+</button>
+
+<div class="audio-section" style="display:none;">
+    {{Audio}}
+</div>
+
+<div class="section-label">Correct Answer</div>
+<div class="correct-answer">{{Answer}}</div>
+
+<hr>
+
+<div class="section-label">Your Answer</div>
+<div id="comparison"></div>
+<div id="score"></div>
+
+<script>
+    (function() {
+        var typed   = (sessionStorage.getItem('_typedAns') || '').trim();
+        var answer  = document.querySelector('.correct-answer').textContent.trim();
+        var comp    = document.getElementById('comparison');
+        var scoreEl = document.getElementById('score');
+
+        if (!typed) {
+            comp.innerHTML = '<span class="no-input">No answer typed</span>';
+            return;
+        }
+
+        /* Normalize: lowercase, collapse whitespace */
+        function normalize(s) {
+            return s.toLowerCase().replace(/\s+/g, ' ').trim();
+        }
+        /* Strip leading/trailing punctuation from a word for comparison */
+        function stripPunct(w) {
+            return w.replace(/^[^a-záéíóúüñàèìòùâêîôûäëïöüçß]+/i, '').replace(/[^a-záéíóúüñàèìòùâêîôûäëïöüçß]+$/i, '');
+        }
+        function words(s) {
+            return s.split(/\s+/).filter(function(w){ return w.length > 0; });
+        }
+
+        var typedNorm   = normalize(typed);
+        var answerNorm  = normalize(answer);
+        /* tw/aw used for comparison have punctuation stripped */
+        var tw = words(typedNorm).map(stripPunct).filter(function(w){ return w.length > 0; });
+        var aw = words(answerNorm).map(stripPunct).filter(function(w){ return w.length > 0; });
+
+        /* Original-case words for display */
+        var twDisplay = words(typed);
+        var awDisplay = words(answer);
+
+        /* ── LCS for word-level alignment ── */
+        var m = tw.length, n = aw.length;
+        var dp = [];
+        for (var i = 0; i <= m; i++) {
+            dp[i] = [];
+            for (var j = 0; j <= n; j++) {
+                if (i === 0 || j === 0) dp[i][j] = 0;
+                else if (tw[i-1] === aw[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+                else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+            }
+        }
+
+        /* Backtrack to build alignment */
+        var result = [];
+        var i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && tw[i-1] === aw[j-1]) {
+                result.unshift({ type: 'correct', typed: twDisplay[i-1], expected: awDisplay[j-1] });
+                i--; j--;
+            } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+                result.unshift({ type: 'missing', expected: awDisplay[j-1] });
+                j--;
+            } else {
+                result.unshift({ type: 'extra', typed: twDisplay[i-1] });
+                i--;
+            }
+        }
+
+        /* Render */
+        var html = '';
+        var correct = 0;
+        var total = aw.length;
+
+        result.forEach(function(r) {
+            if (r.type === 'correct') {
+                html += '<span class="word-correct">' + r.typed + '</span>';
+                correct++;
+            } else if (r.type === 'missing') {
+                html += '<span class="word-missing">(' + r.expected + ')</span>';
+            } else if (r.type === 'extra') {
+                html += '<span class="word-extra">' + r.typed + '</span>';
+            }
+        });
+
+        comp.innerHTML = html;
+
+        /* Score */
+        var pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+        var cls = pct === 100 ? 'score-perfect' : pct >= 60 ? 'score-good' : 'score-poor';
+        scoreEl.innerHTML = '<span class="score-badge ' + cls + '">' + correct + '/' + total + ' words — ' + pct + '%</span>';
+    })();
+</script>

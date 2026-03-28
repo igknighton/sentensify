@@ -1,0 +1,32 @@
+<div class="audio-section">
+    {{Audio}}
+</div>
+
+<button class="play-btn" onclick="document.querySelector('.replay-button').click();">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    Play Audio
+</button>
+
+<br>
+
+<input type="text" id="typeans" placeholder="Type what you hear…" autocomplete="off" autofocus>
+
+<script>
+    document.getElementById('typeans').addEventListener('input', function() {
+        sessionStorage.setItem('_typedAns', this.value);
+    });
+
+    /* Press Enter to flip to the answer side */
+    document.getElementById('typeans').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sessionStorage.setItem('_typedAns', this.value);
+            /* pycmd('ans') works on Anki Desktop; AnkiDroid uses the same bridge */
+            if (typeof pycmd === 'function') pycmd('ans');
+            else if (typeof study !== 'undefined' && study.drawAnswer) study.drawAnswer();
+        }
+    });
+
+    /* Clear stale answer each time the front renders */
+    sessionStorage.setItem('_typedAns', '');
+</script>
