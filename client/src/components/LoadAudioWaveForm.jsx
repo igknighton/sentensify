@@ -7,11 +7,15 @@ import Loader from "./Loader.jsx";
 import Alert from '@mui/material/Alert';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
 import useWaveSurfer from "../hooks/useWaveSurfer.jsx";
 import AudioSegments from "./AudioSegments.jsx";
 import useAudioSession from "../hooks/useAudioSession.jsx";
 import useAlert from "../hooks/useAlert.jsx";
 import {createTheme, ThemeProvider} from "@mui/material/styles";
+
+const languageOptions = Object.entries(languages).map(([label, code]) => ({ label, code }));
 
 export default function LocalWaveform() {
 
@@ -23,7 +27,8 @@ export default function LocalWaveform() {
     const {
         transcribeSegments,addAudioSegment,removeAudioSegment,
         loading,filename,segments,fileUrl,
-        error,clearError,handleFile,errMsg
+        error,clearError,handleFile,errMsg,
+        language,setLanguage
     } = useAudioSession();
 
     const {showAlert,setShowAlert} = useAlert();
@@ -49,6 +54,15 @@ export default function LocalWaveform() {
                 </Alert>
             }
             <input type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
+            <Autocomplete
+                options={languageOptions}
+                getOptionLabel={(option) => option.label}
+                value={languageOptions.find(o => o.code === language) ?? null}
+                onChange={(_, newValue) => { if (newValue) setLanguage(newValue.code); }}
+                isOptionEqualToValue={(option, value) => option.code === value.code}
+                renderInput={(params) => <TextField {...params} label="Transcription Language" size="small" />}
+                sx={{ mb: 2 }}
+            />
             <WavesurferPlayer
                 url={fileUrl || undefined}
                 height={100}

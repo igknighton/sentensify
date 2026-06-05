@@ -37,13 +37,14 @@ app.post('/api/transcribe', async (req, res) => {
         audioSegments = req.body.segments
         filename = req.body.filename
     }
+    const language = req.body.language || "es";
     filename = path.basename(filename);
     const filePath = path.join(__dirname, 'uploads' ,filename);
 
     if (!fs.existsSync(filePath)) {
         return res.status(404).send("File not found");
     }
-    const requestDir = await main(filePath,audioSegments);
+    const requestDir = await main(filePath, audioSegments, language);
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(

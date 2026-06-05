@@ -10,14 +10,14 @@ import pLimit from "p-limit";
 
 const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
 
-const transcribe = async (filePath,audioSegments,requestDir) => {
+const transcribe = async (filePath, audioSegments, requestDir, language) => {
 
     const {result, error} = await deepgramClient.listen.prerecorded.transcribeFile(
         fs.createReadStream(filePath),
         {
             model: "nova-3",
             smart_format: true,
-            language: "es",
+            language,
         }
     );
 
@@ -97,7 +97,7 @@ const exportClip = (srcPath, start, end, outPath) =>
             .run();
     });
 
-export const main = async (filePath, audioSegments = []) => {
+export const main = async (filePath, audioSegments = [], language = "es") => {
     try {
         const directoryUUID = randomUUID();
         // creating unique dir for each request to prevent race condition
@@ -105,7 +105,7 @@ export const main = async (filePath, audioSegments = []) => {
         await ensureDir(requestDir);
         await ensureDir(path.join(requestDir, "audioClips"));
         const AUDIO_PADDING_SECONDS = 0.3;
-        const transcribeData = await transcribe(filePath, audioSegments,requestDir);
+        const transcribeData = await transcribe(filePath, audioSegments, requestDir, language);
         const limit = pLimit(5); // run ffmpeg commands at once
 
         const metadata = await ffprobeAsync(filePath);

@@ -11,6 +11,7 @@ const useAudioSession = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileUrl, setFileUrl] = useState(null);
     const [segments, setSegments] = useState(() => JSON.parse(localStorage.getItem("audioSegments"))??[]);
+    const [language, setLanguage] = useState("es");
 
     const clearError = () => {
         setError(false);
@@ -23,7 +24,8 @@ const useAudioSession = () => {
             setLoading(true);
             const res = await axios.post('/api/transcribe', {
                 filename,
-                segments
+                segments,
+                language
             }, {
                 responseType:'blob'
             })
@@ -143,7 +145,7 @@ const useAudioSession = () => {
 
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
-    return {loading,fileUrl,segments,errMsg,error,
+    return {loading,fileUrl,segments,errMsg,error,language,setLanguage,
         handleFile,removeAudioSegment,transcribeSegments,addAudioSegment};
 };
 
