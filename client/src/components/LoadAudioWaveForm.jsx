@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useRef} from "react";
 import WavesurferPlayer from "@wavesurfer/react";
 import languages from "../types/languages.js";
 import Stack from '@mui/material/Stack';
@@ -19,15 +19,16 @@ const languageOptions = Object.entries(languages).map(([label, code]) => ({ labe
 
 export default function LocalWaveform() {
 
+    const inputRef = useRef(null);
     const {
         selectedStart, selectedEnd,
         regionsRef,wsRef,
-        onMount
+        onMount,clearWaveSurfer
     } = useWaveSurfer();
     const {
         transcribeSegments,addAudioSegment,removeAudioSegment,
         loading,filename,segments,fileUrl,
-        error,clearError,handleFile,errMsg,
+        error,clearError,clearSession,handleFile,errMsg,
         language,setLanguage
     } = useAudioSession();
 
@@ -53,7 +54,7 @@ export default function LocalWaveform() {
                         {errMsg}
                 </Alert>
             }
-            <input type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
+            <input ref={inputRef} type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
             <Autocomplete
                 options={languageOptions}
                 getOptionLabel={(option) => option.label}
@@ -110,6 +111,13 @@ export default function LocalWaveform() {
                             </CustomButton>
                             <CustomButton onClick={transcribeSegments}  disabled={!regionsRef.current || segments.length === 0}>
                                 Transcribe Audio segments
+                            </CustomButton>
+                            <CustomButton onClick={() => {
+                                clearSession();
+                                clearWaveSurfer();
+                                if (inputRef.current) inputRef.current.value = '';
+                            }} disabled={!filename}>
+                                Clear
                             </CustomButton>
                         </Stack>
                             <AudioSegments

@@ -12,11 +12,23 @@ const useAudioSession = () => {
     const [fileUrl, setFileUrl] = useState(null);
     const [segments, setSegments] = useState(() => JSON.parse(localStorage.getItem("audioSegments"))??[]);
     const [language, setLanguage] = useState("es");
-
     const clearError = () => {
         setError(false);
-        setErrMsg('')
-    }
+        setErrMsg('');
+    };
+
+    const clearSession = () => {
+        clearError();
+        setLoading(false);
+        setFilename(null);
+        setSelectedFile(null);
+        setFileUrl(null);
+        setSegments([]);
+        localStorage.removeItem('filename');
+        localStorage.removeItem('audioSegments');
+        localStorage.removeItem('currentStartSegment');
+        localStorage.removeItem('currentEndSegment');
+    };
 
     const transcribeSegments = async () => {
         try {
@@ -145,8 +157,11 @@ const useAudioSession = () => {
 
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
-    return {loading,fileUrl,segments,errMsg,error,language,setLanguage,
-        handleFile,removeAudioSegment,transcribeSegments,addAudioSegment};
+    return {
+        loading, fileUrl, segments, errMsg, error, language, filename,
+        setLanguage, handleFile, removeAudioSegment, transcribeSegments,
+        addAudioSegment, clearError, clearSession
+    };
 };
 
 export default useAudioSession;

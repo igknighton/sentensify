@@ -61,11 +61,18 @@ const useWaveSurfer = () => {
             }
         });
     };
+    const clearWaveSurfer = () => {
+        regionsRef.current?.clearRegions();
+        wsRef.current?.empty();
+        setSelectedStart(0);
+        setSelectedEnd(1);
+    };
+
     return {
         setSelectedStart,selectedStart,
         setSelectedEnd,selectedEnd,
         zoomRef,regionsRef,wsRef,
-        onMount
+        onMount,clearWaveSurfer
     };
 };
 
