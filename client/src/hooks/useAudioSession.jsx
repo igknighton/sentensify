@@ -12,10 +12,13 @@ const useAudioSession = () => {
     const [fileUrl, setFileUrl] = useState(null);
     const [segments, setSegments] = useState(() => JSON.parse(localStorage.getItem("audioSegments"))??[]);
     const [language, setLanguage] = useState("es");
+    const [successMsg, setSuccessMsg] = useState('');
     const clearError = () => {
         setError(false);
         setErrMsg('');
     };
+
+    const clearSuccess = () => setSuccessMsg('');
 
     const clearSession = () => {
         clearError();
@@ -30,45 +33,63 @@ const useAudioSession = () => {
         localStorage.removeItem('currentEndSegment');
     };
 
-    const transcribeSegments = async () => {
+    const transcribeSegments = async (deckName) => {
         try {
             clearError();
+            clearSuccess();
             setLoading(true);
             const res = await axios.post('/api/transcribe', {
                 filename,
                 segments,
-                language
-            }, {
+                language,
+                deckName
+            },{
                 responseType:'blob'
             })
-            const url = window.URL.createObjectURL(new Blob([res.data]));
-            const link = document.createElement("a");
-            link.href = url;
+            const contentType = res.headers['content-type'] ?? '';
+            if (contentType.includes('application/json')) {
+                const body = JSON.parse(await res.data.text());
+                setSuccessMsg(body.message ?? 'Deck added to Anki');
+            } else {
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement("a");
+                link.href = url;
 
 
-            link.setAttribute("download", `${crypto.randomUUID()}.zip`);
+                link.setAttribute("download", `${crypto.randomUUID()}.zip`);
 
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
 
-            window.URL.revokeObjectURL(url);
-            localStorage.removeItem("audioSegments");
-            localStorage.removeItem("filename");
-            localStorage.removeItem("currentStartSegment");
-            localStorage.removeItem("currentEndSegment");
+                window.URL.revokeObjectURL(url);
+            }
+            clearSession();
             setLoading(false)
+
+            return res;
         }
         catch (e) {
-            setError(true)
-            setErrMsg('Error Transcribing Audio')
-            console.error("Error Transcribing audio",e)
-            setLoading(false)
+            let msg = 'Error Transcribing Audio';
+            const data = e.response?.data;
+            if (data instanceof Blob) {
+                try {
+                    msg = JSON.parse(await data.text()).message ?? msg;
+                } catch {
+
+                }
+            } else if (data?.message) {
+                msg = data.message;
+            }
+            setError(true);
+            setErrMsg(msg);
+            setLoading(false);
         }
     }
 
     const handleFile = async e => {
         clearError()
+        clearSuccess()
         const f = e.target.files?.[0];
         if (!f) return;
         if (!f.type.includes("audio") && !f.type.includes("video")) {
@@ -158,9 +179,9 @@ const useAudioSession = () => {
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
     return {
-        loading, fileUrl, segments, errMsg, error, language, filename,
+        loading, fileUrl, segments, errMsg, error, language, filename, successMsg,
         setLanguage, handleFile, removeAudioSegment, transcribeSegments,
-        addAudioSegment, clearError, clearSession
+        addAudioSegment, clearError, clearSuccess, clearSession
     };
 };
 

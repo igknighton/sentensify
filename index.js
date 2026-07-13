@@ -7,7 +7,7 @@ import  { convertArrayToCSV } from 'convert-array-to-csv';
 import { randomUUID } from "node:crypto";
 import {createClient} from "@deepgram/sdk";
 import pLimit from "p-limit";
-
+import {addCards,createNoteType,checkConnection,createDeck,} from "./ankiService.js"
 const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
 
 const transcribe = async (filePath, audioSegments, requestDir, language) => {
@@ -97,14 +97,15 @@ const exportClip = (srcPath, start, end, outPath) =>
             .run();
     });
 
-export const main = async (filePath, audioSegments = [], language = "es") => {
+export const main = async (filePath, audioSegments = [], language = "es",deckName = '') => {
     try {
+        const ankiRunning = await checkConnection();
         const directoryUUID = randomUUID();
         // creating unique dir for each request to prevent race condition
         const requestDir = path.join(os.tmpdir(), `sentensify-${directoryUUID}`);
         await ensureDir(requestDir);
         await ensureDir(path.join(requestDir, "audioClips"));
-        const AUDIO_PADDING_SECONDS = 0.3;
+        const AUDIO_PADDING_SECONDS = 0.1;
         const transcribeData = await transcribe(filePath, audioSegments, requestDir, language);
         const limit = pLimit(5); // run ffmpeg commands at once
 
@@ -145,9 +146,31 @@ export const main = async (filePath, audioSegments = [], language = "es") => {
             console.error(err);
         });
         console.log('CSV saved!');
-        return requestDir;
+
+        let addedToAnki = false;
+        if (ankiRunning) {
+            try {
+                const cardsToAnki = allSentences.map(sentence => {
+                    return {
+                        front: `[sound:${sentence.sentenceAudioName}]`,
+                        back: sentence.text,
+                        fPath: requestDir + `/audioClips/${sentence.sentenceAudioName}`,
+                        fileName: sentence.sentenceAudioName
+                    }
+                })
+                await createNoteType()
+                await createDeck(deckName)
+                await addCards(cardsToAnki, deckName);
+                addedToAnki = true;
+            } catch (e) {
+                console.error("Anki push failed, falling back to ZIP", e)
+            }
+        }
+
+        return {requestDir, addedToAnki};
     } catch (e) {
         console.error("An error occurred",e)
+        throw new Error('An error occurred');
     }
 
 }

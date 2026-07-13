@@ -31,33 +31,44 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 app.post('/api/transcribe', async (req, res) => {
-    let audioSegments = []
-    let filename = req.body.filename || '';
-    if (req.body.segments !== undefined) {
-        audioSegments = req.body.segments
-        filename = req.body.filename
+    try {
+        let audioSegments = []
+        let filename = req.body.filename || '';
+        let deckName = req.body.deckName || '';
+        if (req.body.segments !== undefined) {
+            audioSegments = req.body.segments
+            filename = req.body.filename
+        }
+        const language = req.body.language || "es";
+        filename = path.basename(filename);
+        const filePath = path.join(__dirname, 'uploads', filename);
+
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).send("File not found");
+        }
+        const {requestDir, addedToAnki} = await main(filePath, audioSegments, language, deckName);
+
+        if (addedToAnki) {
+            return res.json({addedToAnki: true, message: `Deck "${deckName}" added to Anki`});
+        }
+
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${path.basename(requestDir)}.zip"`
+        );
+
+        const archive = archiver("zip", { zlib: { level: 9 } });
+        archive.on("error", (err) => res.status(500).send(err.message));
+
+        archive.pipe(res);
+        archive.directory(requestDir, false);
+        await archive.finalize();
+    } catch (e) {
+        console.error("Error transcribing data",e)
+        if (res.headersSent) return res.destroy();
+        res.status(e.status ?? 500).json({ message: e.message ?? "Transcription failed" });
     }
-    const language = req.body.language || "es";
-    filename = path.basename(filename);
-    const filePath = path.join(__dirname, 'uploads' ,filename);
-
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).send("File not found");
-    }
-    const requestDir = await main(filePath, audioSegments, language);
-
-    res.setHeader("Content-Type", "application/zip");
-    res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${path.basename(requestDir)}.zip"`
-    );
-
-    const archive = archiver("zip", { zlib: { level: 9 } });
-    archive.on("error", (err) => res.status(500).send(err.message));
-
-    archive.pipe(res);
-    archive.directory(requestDir, false);
-    await archive.finalize();
 })
 
 app.get('/api/upload/get/:filename', (req,res,next) => {
