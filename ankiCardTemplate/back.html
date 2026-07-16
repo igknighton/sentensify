@@ -13,92 +13,146 @@
 <hr>
 
 <div class="section-label">Your Answer</div>
-<div id="comparison"></div>
+<div id="comparison">{{type:Answer}}</div>
 <div id="score"></div>
 
 <script>
     (function() {
-        var typed   = (sessionStorage.getItem('_typedAns') || '').trim();
-        var answer  = document.querySelector('.correct-answer').textContent.trim();
-        var comp    = document.getElementById('comparison');
-        var scoreEl = document.getElementById('score');
+        var el       = document.getElementById('typeans');
+        var scoreEl  = document.getElementById('score');
+        var answerEl = document.querySelector('.correct-answer');
+        if (!el || !scoreEl || !answerEl) return;
 
-        if (!typed) {
-            comp.innerHTML = '<span class="no-input">No answer typed</span>';
+        /* Recover the typed text from Anki's rendered diff: when typed and
+           expected differ, Anki renders the typed line, an arrow
+           (#typearrow), then the expected line. */
+        var arrow = document.getElementById('typearrow');
+        var typed;
+        if (arrow) {
+            typed = '';
+            var node = el.firstChild;
+            while (node && node !== arrow) {
+                if (!(node.nodeType === 1 && node.tagName === 'BR')) {
+                    typed += node.textContent || '';
+                }
+                node = node.nextSibling;
+            }
+        } else if (el.querySelector('.typeMissed, .typeBad')) {
+            typed = '';
+        } else {
+            typed = el.textContent;
+        }
+
+        /* Ignore punctuation and collapse whitespace; case is ignored at
+           comparison time so the display keeps its original casing */
+        function clean(s) {
+            return s.replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+        }
+        var typedC = clean(typed);
+        var expC   = clean(answerEl.textContent);
+
+        /* ── LCS alignment between two sequences ──
+           Returns ops: 'both' (a[ai] matches b[bi]), 'a' (only in a), 'b' (only in b) */
+        function lcsAlign(a, b, eq) {
+            var m = a.length, n = b.length;
+            var dp = [];
+            for (var i = 0; i <= m; i++) {
+                dp[i] = [];
+                for (var j = 0; j <= n; j++) {
+                    if (i === 0 || j === 0) dp[i][j] = 0;
+                    else if (eq(a[i-1], b[j-1])) dp[i][j] = dp[i-1][j-1] + 1;
+                    else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+                }
+            }
+            var ops = [];
+            var i = m, j = n;
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && eq(a[i-1], b[j-1])) {
+                    ops.unshift({ type: 'both', ai: i-1, bi: j-1 });
+                    i--; j--;
+                } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+                    ops.unshift({ type: 'b', bi: j-1 });
+                    j--;
+                } else {
+                    ops.unshift({ type: 'a', ai: i-1 });
+                    i--;
+                }
+            }
+            return ops;
+        }
+
+        var tc = typedC.split('');
+        var ec = expC.split('');
+        var ops = lcsAlign(tc, ec, function(x, y){ return x.toLowerCase() === y.toLowerCase(); });
+
+        /* Rebuild the diff in Anki's own format: typed line (typeGood/typeBad),
+           arrow, expected line (typeGood/typeMissed). Within each gap between
+           matches, extra and missing chars pair up as substitutions; each
+           unpaired missing char gets a "-" placeholder in the typed line so
+           omissions are visible there too. */
+        var typedLine = [], expLine = [];
+        var correct = 0, perfect = true;
+        var aBuf = [], bBuf = [];
+        function flushGap() {
+            if (!aBuf.length && !bBuf.length) return;
+            perfect = false;
+            aBuf.forEach(function(ch) { typedLine.push({ cls: 'typeBad', ch: ch }); });
+            for (var d = aBuf.length; d < bBuf.length; d++) {
+                typedLine.push({ cls: 'typeMissed', ch: '-' });
+            }
+            bBuf.forEach(function(ch) { expLine.push({ cls: 'typeMissed', ch: ch }); });
+            aBuf = []; bBuf = [];
+        }
+        ops.forEach(function(op) {
+            if (op.type === 'both') {
+                flushGap();
+                typedLine.push({ cls: 'typeGood', ch: tc[op.ai] });
+                expLine.push({ cls: 'typeGood', ch: ec[op.bi] });
+                if (ec[op.bi] !== ' ') correct++;
+            } else if (op.type === 'a') {
+                aBuf.push(tc[op.ai]);
+            } else {
+                bBuf.push(ec[op.bi]);
+            }
+        });
+        flushGap();
+
+        /* Merge consecutive same-class characters into runs, breaking at
+           spaces so each word gets its own highlighted chip; cleaned text
+           contains only letters/digits/spaces, so no HTML escaping needed */
+        function renderLine(items) {
+            var out = '', i = 0;
+            while (i < items.length) {
+                if (items[i].ch === ' ') {
+                    out += ' ';
+                    i++;
+                    continue;
+                }
+                var j = i, run = '';
+                while (j < items.length && items[j].ch !== ' ' && items[j].cls === items[i].cls) {
+                    run += items[j].ch;
+                    j++;
+                }
+                out += '<span class="' + items[i].cls + '">' + run + '</span>';
+                i = j;
+            }
+            return out;
+        }
+
+        if (!typedC) {
+            el.innerHTML = '<span class="typeMissed">' + expC + '</span>';
+            scoreEl.innerHTML = '<span class="no-input">No answer typed</span>';
             return;
         }
 
-        /* Normalize: lowercase, collapse whitespace */
-        function normalize(s) {
-            return s.toLowerCase().replace(/\s+/g, ' ').trim();
-        }
-        /* Strip leading/trailing punctuation from a word for comparison */
-        function stripPunct(w) {
-            return w.replace(/^[^a-záéíóúüñàèìòùâêîôûäëïöüçß]+/i, '').replace(/[^a-záéíóúüñàèìòùâêîôûäëïöüçß]+$/i, '');
-        }
-        function words(s) {
-            return s.split(/\s+/).filter(function(w){ return w.length > 0; });
-        }
+        el.innerHTML = perfect
+            ? renderLine(typedLine)
+            : renderLine(typedLine) + '<br><span id="typearrow">⇩</span><br>' + renderLine(expLine);
 
-        var typedNorm   = normalize(typed);
-        var answerNorm  = normalize(answer);
-        /* tw/aw used for comparison have punctuation stripped */
-        var tw = words(typedNorm).map(stripPunct).filter(function(w){ return w.length > 0; });
-        var aw = words(answerNorm).map(stripPunct).filter(function(w){ return w.length > 0; });
-
-        /* Original-case words for display */
-        var twDisplay = words(typed);
-        var awDisplay = words(answer);
-
-        /* ── LCS for word-level alignment ── */
-        var m = tw.length, n = aw.length;
-        var dp = [];
-        for (var i = 0; i <= m; i++) {
-            dp[i] = [];
-            for (var j = 0; j <= n; j++) {
-                if (i === 0 || j === 0) dp[i][j] = 0;
-                else if (tw[i-1] === aw[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
-                else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
-            }
-        }
-
-        /* Backtrack to build alignment */
-        var result = [];
-        var i = m, j = n;
-        while (i > 0 || j > 0) {
-            if (i > 0 && j > 0 && tw[i-1] === aw[j-1]) {
-                result.unshift({ type: 'correct', typed: twDisplay[i-1], expected: awDisplay[j-1] });
-                i--; j--;
-            } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
-                result.unshift({ type: 'missing', expected: awDisplay[j-1] });
-                j--;
-            } else {
-                result.unshift({ type: 'extra', typed: twDisplay[i-1] });
-                i--;
-            }
-        }
-
-        /* Render */
-        var html = '';
-        var correct = 0;
-        var total = aw.length;
-
-        result.forEach(function(r) {
-            if (r.type === 'correct') {
-                html += '<span class="word-correct">' + r.typed + '</span>';
-                correct++;
-            } else if (r.type === 'missing') {
-                html += '<span class="word-missing">(' + r.expected + ')</span>';
-            } else if (r.type === 'extra') {
-                html += '<span class="word-extra">' + r.typed + '</span>';
-            }
-        });
-
-        comp.innerHTML = html;
-
-        /* Score */
+        /* Score by letters (spaces excluded) */
+        var total = expC.replace(/\s+/g, '').length;
         var pct = total > 0 ? Math.round((correct / total) * 100) : 0;
         var cls = pct === 100 ? 'score-perfect' : pct >= 60 ? 'score-good' : 'score-poor';
-        scoreEl.innerHTML = '<span class="score-badge ' + cls + '">' + correct + '/' + total + ' words — ' + pct + '%</span>';
+        scoreEl.innerHTML = '<span class="score-badge ' + cls + '">' + correct + '/' + total + ' letters — ' + pct + '%</span>';
     })();
 </script>

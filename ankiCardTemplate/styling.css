@@ -44,8 +44,8 @@
     fill: #fff;
 }
 
-/* ── Text Input ── */
-#typeans {
+/* ── Text Input (front side; Anki's native type-answer box) ── */
+input#typeans {
     width: 85%;
     max-width: 540px;
     padding: 14px 18px;
@@ -61,7 +61,7 @@
     -webkit-text-fill-color: #1a1a2e !important;
 }
 
-#typeans:focus {
+input#typeans:focus {
     border-color: #4a6fa5;
     box-shadow: 0 0 0 3px rgba(74,111,165,0.15);
 }
@@ -98,53 +98,44 @@
     min-height: 40px;
 }
 
-.word-correct {
+/* Anki's native type-answer diff (rendered inside <code id="typeans">) */
+code#typeans {
+    display: inline-block;
+    font-family: inherit;
+    font-size: 21px;
+    background: none;
+    padding: 4px;
+    line-height: 2;
+    word-spacing: 1px;
+}
+
+code#typeans .typeGood {
     color: #1b7a3d;
     background: #d4f5e0;
-    padding: 3px 8px;
+    padding: 3px 4px;
     border-radius: 6px;
     font-weight: 600;
 }
 
-.word-wrong {
-    padding: 3px 8px;
-    border-radius: 6px;
-}
-
-.word-wrong .typed {
+code#typeans .typeBad {
     color: #c0392b;
     background: #fce4e4;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-decoration: line-through;
-    font-weight: 500;
-}
-
-.word-wrong .expected {
-    color: #1b7a3d;
-    background: #d4f5e0;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 2px;
-    font-weight: 600;
-}
-
-.word-missing {
-    color: #c0392b;
-    background: #fce4e4;
-    padding: 3px 8px;
+    padding: 3px 4px;
     border-radius: 6px;
     font-weight: 500;
+}
+
+code#typeans .typeMissed {
+    color: #c0392b;
+    background: #fce4e4;
+    padding: 3px 4px;
+    border-radius: 6px;
     font-style: italic;
+    font-weight: 500;
 }
 
-.word-extra {
-    color: #e67e22;
-    background: #fef3e2;
-    padding: 3px 8px;
-    border-radius: 6px;
-    text-decoration: line-through;
-    font-weight: 500;
+#typearrow {
+    color: #888;
 }
 
 .score-badge {
