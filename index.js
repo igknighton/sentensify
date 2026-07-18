@@ -21,7 +21,24 @@ const transcribe = async (filePath, audioSegments, requestDir, language) => {
         }
     );
 
-    if (error) throw error;
+    if (error) {
+        console.error("Error transcribing", error);
+        const errObj = JSON.parse(error.message);
+
+        let errMsg;
+        const errCode = errObj['err_code'] ?? '';
+        switch (errCode) {
+            case "INVALID_AUTH":
+                errMsg = "Invalid credentials. Do you have an API key installed?";
+                break;
+            case "ASR_PAYMENT_REQUIRED":
+                errMsg = "Not enough funds to process transcription";
+                break;
+            default:
+                errMsg = 'An error occurred while transcribing the audio file.';
+        }
+        throw new Error(errMsg)
+    }
     // if (!error) console.dir(result, { depth: null });
     if (!error) {
         const {results} = result;
@@ -170,7 +187,7 @@ export const main = async (filePath, audioSegments = [], language = "es",deckNam
         return {requestDir, addedToAnki};
     } catch (e) {
         console.error("An error occurred",e)
-        throw new Error('An error occurred');
+        throw e;
     }
 
 }
