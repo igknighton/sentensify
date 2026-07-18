@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises';
 
 const ENDPOINT = "http://127.0.0.1:8765";
 
-async function anki(action, params = {}, timeoutMs) {
+async function anki(action, params = {}, timeoutMs = 30000) {
     try {
         const res = await fetch(ENDPOINT, {
             method: "POST",
@@ -50,7 +50,7 @@ export const createNoteType = async () => {
 
 export const checkConnection = async () => {
     try {
-        const version = await anki("version", {}, 3000);
+        const version = await anki("version", {});
         return Number(version) >= 6;
     } catch {
         console.log("Anki not reachable — will fall back to ZIP download");
@@ -89,7 +89,7 @@ export const addCards = async (cards,deckName) => {
                 }]
             }
         }))
-        const addNotesRes = await anki("addNotes", { notes });
+        const addNotesRes = await anki("addNotes", { notes },60000);
         console.log("Add Notes Response",addNotesRes)
     } catch (e) {
         console.error("Failed to add cards",e)
