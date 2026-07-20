@@ -37,9 +37,9 @@ app.post('/api/transcribe', async (req, res) => {
         let deckName = req.body.deckName || '';
         if (req.body.segments !== undefined) {
             audioSegments = req.body.segments
-            filename = req.body.filename
         }
         const language = req.body.language || "es";
+
         filename = path.basename(filename);
         const filePath = path.join(__dirname, 'uploads', filename);
 
