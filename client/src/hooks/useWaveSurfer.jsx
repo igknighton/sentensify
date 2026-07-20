@@ -66,6 +66,7 @@ const useWaveSurfer = () => {
         wsRef.current?.empty();
         setSelectedStart(0);
         setSelectedEnd(1);
+        regionsRef.current = null;
     };
 
     return {

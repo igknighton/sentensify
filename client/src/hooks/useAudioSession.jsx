@@ -76,7 +76,7 @@ const useAudioSession = () => {
                 try {
                     msg = JSON.parse(await data.text()).message ?? msg;
                 } catch {
-
+                    console.error(e)
                 }
             } else if (data?.message) {
                 msg = data.message;
@@ -123,7 +123,7 @@ const useAudioSession = () => {
                 setSegments([])
                 localStorage.removeItem('audioSegments');
             } else {
-                console.error("Failed to upload file");
+                console.error("Failed to upload file",res);
             }
 
         } catch (e) {

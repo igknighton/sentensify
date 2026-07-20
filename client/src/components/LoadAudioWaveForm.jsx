@@ -48,6 +48,8 @@ export default function LocalWaveform() {
                 if (res) {
                     setDeckName('')
                     setModalError(false)
+                    clearWaveSurfer();
+                    if (inputRef.current) inputRef.current.value = '';
                 }
             }
             else {
