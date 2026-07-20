@@ -2,7 +2,7 @@ import express from 'express';
 import archiver from 'archiver';
 import multer from 'multer';
 import {main} from "./index.js";
-import path, {basename} from "path";
+import path from "path";
 import {fileURLToPath} from "url"
 import {dirname} from "path";
 import fs from "fs";

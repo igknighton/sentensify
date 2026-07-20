@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises';
-
+import pLimit from "p-limit";
 const ENDPOINT = "http://127.0.0.1:8765";
 
 async function anki(action, params = {}, timeoutMs = 30000) {
@@ -61,7 +61,7 @@ export const checkConnection = async () => {
 export const createDeck = async (name) => {
     try {
         const res = await anki("createDeck", {deck: name});
-        console.log(res.data)
+        console.log("createDeck:",res)
     } catch (e) {
         console.error("Error: ",e)
         throw e;
@@ -71,24 +71,26 @@ export const createDeck = async (name) => {
 
 export const addCards = async (cards,deckName) => {
     try {
-        const notes = await Promise.all(cards.map( async c => {
-            const audioBuffer = await readFile(c.fPath)
-            return {
-                deckName: deckName,
-                modelName: "Audio input",
-                fields: {Audio: "", Answer: c.back},
-                tags: [],
-                options: {
-                    allowDuplicate: false,
-                    duplicateScope: "deck",
-                },
-                audio: [{
-                    filename: c.fileName,
-                    data: audioBuffer.toString('base64'),
-                    fields:["Audio"]
-                }]
-            }
-        }))
+        const limit = pLimit(5);
+        const cardsToAdd = cards.map( async c => limit(()=> readFile(c.fPath).then((base64String) => {
+                return {
+                    deckName: deckName,
+                    modelName: "Audio input",
+                    fields: {Audio: "", Answer: c.back},
+                    tags: [],
+                    options: {
+                        allowDuplicate: false,
+                        duplicateScope: "deck",
+                    },
+                    audio: [{
+                        filename: c.fileName,
+                        data: base64String.toString('base64'),
+                        fields:["Audio"]
+                    }]
+                }
+            }))
+        )
+        const notes = await Promise.all(cardsToAdd)
         const addNotesRes = await anki("addNotes", { notes },60000);
         console.log("Add Notes Response",addNotesRes)
     } catch (e) {
