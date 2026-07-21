@@ -1,5 +1,4 @@
 import express from 'express';
-import archiver from 'archiver';
 import multer from 'multer';
 import {main} from "./index.js";
 import path from "path";
@@ -46,24 +45,19 @@ app.post('/api/transcribe', async (req, res) => {
         if (!fs.existsSync(filePath)) {
             return res.status(404).send("File not found");
         }
-        const {requestDir, addedToAnki} = await main(filePath, audioSegments, language, deckName);
+        const {addedToAnki, apkgBuffer} = await main(filePath, audioSegments, language, deckName);
 
         if (addedToAnki) {
             return res.json({addedToAnki: true, message: `Deck "${deckName}" added to Anki`});
         }
 
-        res.setHeader("Content-Type", "application/zip");
+        const safeName = (deckName || 'deck').replace(/[^\w.-]+/g, '_');
+        res.setHeader("Content-Type", "application/octet-stream");
         res.setHeader(
             "Content-Disposition",
-            `attachment; filename="${path.basename(requestDir)}.zip"`
+            `attachment; filename="${safeName}.apkg"`
         );
-
-        const archive = archiver("zip", { zlib: { level: 9 } });
-        archive.on("error", (err) => res.status(500).send(err.message));
-
-        archive.pipe(res);
-        archive.directory(requestDir, false);
-        await archive.finalize();
+        res.send(Buffer.from(apkgBuffer));
     } catch (e) {
         console.error("Error transcribing data",e)
         if (res.headersSent) return res.destroy();

@@ -137,3 +137,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# JetBrains IDE
+.idea/
+
+# Uploaded audio/video files (runtime, not cleaned up)
+uploads/

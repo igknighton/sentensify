@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import {createClient} from "@deepgram/sdk";
 import pLimit from "p-limit";
 import {addCards,createNoteType,checkConnection,createDeck,} from "./ankiService.js"
+import {buildApkg} from "./apkgService.js"
 const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
 
 const transcribe = async (filePath, audioSegments, requestDir, language) => {
@@ -164,27 +165,33 @@ export const main = async (filePath, audioSegments = [], language = "es",deckNam
         });
         console.log('CSV saved!');
 
+        const cards = allSentences.map(sentence => {
+            return {
+                front: `[sound:${sentence.sentenceAudioName}]`,
+                back: sentence.text,
+                fPath: requestDir + `/audioClips/${sentence.sentenceAudioName}`,
+                fileName: sentence.sentenceAudioName
+            }
+        })
+
         let addedToAnki = false;
         if (ankiRunning) {
             try {
-                const cardsToAnki = allSentences.map(sentence => {
-                    return {
-                        front: `[sound:${sentence.sentenceAudioName}]`,
-                        back: sentence.text,
-                        fPath: requestDir + `/audioClips/${sentence.sentenceAudioName}`,
-                        fileName: sentence.sentenceAudioName
-                    }
-                })
                 await createNoteType()
                 await createDeck(deckName)
-                await addCards(cardsToAnki, deckName);
+                await addCards(cards, deckName);
                 addedToAnki = true;
             } catch (e) {
-                console.error("Anki push failed, falling back to ZIP", e)
+                console.error("Anki push failed, falling back to .apkg download", e)
             }
         }
 
-        return {requestDir, addedToAnki};
+        // When AnkiConnect wasn't reached (unavailable or push failed), build a
+        // self-contained .apkg for the user to download and import manually.
+        let apkgBuffer = null;
+        if (!addedToAnki) apkgBuffer = await buildApkg(cards, deckName);
+
+        return {addedToAnki, apkgBuffer};
     } catch (e) {
         console.error("An error occurred",e)
         throw e;

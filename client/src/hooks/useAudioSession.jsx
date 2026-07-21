@@ -56,7 +56,7 @@ const useAudioSession = () => {
                 link.href = url;
 
 
-                link.setAttribute("download", `${crypto.randomUUID()}.zip`);
+                link.setAttribute("download", `${deckName || 'deck'}.apkg`);
 
                 document.body.appendChild(link);
                 link.click();
