@@ -1,10 +1,10 @@
 # Sentensify
 
-Sentensify turns audio and video files into Anki flashcard decks — one card per sentence. It transcribes speech using AI and slices the audio into individual sentence clips. If Anki is running locally with AnkiConnect, it adds the deck to your collection directly; otherwise it builds a self-contained `.apkg` file you can download and import by hand.
+Sentensify turns audio and video files — uploaded directly or pulled from a YouTube link — into Anki flashcard decks — one card per sentence. It transcribes speech using AI and slices the audio into individual sentence clips. If Anki is running locally with AnkiConnect, it adds the deck to your collection directly; otherwise it builds a self-contained `.apkg` file you can download and import by hand.
 
 ## How it works
 
-1. **Upload** an audio or video file via the browser UI.
+1. **Load your audio** — upload an audio or video file via the browser UI, or paste a YouTube link and click **Convert to MP3** to have the server download and convert it for you.
 2. **Select a language** from the searchable dropdown.
 3. **Define segments** — drag a region on the waveform to mark a time range, then click **Add Audio Segment**. Repeat for each part of the audio you want to include.
 4. **Name the deck and transcribe** — the server sends the audio to [Deepgram](https://deepgram.com/) (nova-3 model) and slices it into per-sentence MP3 clips with ffmpeg.
@@ -14,6 +14,7 @@ The "Audio input" note type is created automatically on both paths, so you don't
 
 ## Features
 
+- Load audio from a local file or straight from a YouTube URL (converted to MP3 server-side via [yt-dlp](https://github.com/yt-dlp/yt-dlp))
 - Waveform visualizer with drag-to-seek and scroll-to-zoom
 - Draggable region selector to isolate specific parts of the audio
 - Direct push into a running Anki via AnkiConnect, with automatic `.apkg` download as a fallback
