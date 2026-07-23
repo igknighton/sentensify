@@ -141,7 +141,7 @@ export default function LocalWaveform() {
                     sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
 
                 >
-                    {converting ? <Loader/> : 'Convert'}
+                    {converting ? 'Processing...' : 'Convert'}
                 </CustomButton>
             </Stack>
             <Autocomplete
