@@ -1,5 +1,6 @@
 import express from 'express';
 import multer from 'multer';
+import youtubedl from 'youtube-dl-exec';
 import {main} from "./index.js";
 import path from "path";
 import {fileURLToPath} from "url"
@@ -81,6 +82,46 @@ app.get('/api/upload/get/:filename', (req,res,next) => {
 
 app.post('/api/upload',upload.single("audio"),(req,res) => {
     res.json({filename:req.file.filename})
+})
+
+const isYoutubeUrl = raw => {
+    try {
+        const {hostname, protocol} = new URL(raw);
+        if (protocol !== 'http:' && protocol !== 'https:') return false;
+        const host = hostname.replace(/^www\./, '');
+        return host === 'youtube.com' || host === 'm.youtube.com'
+            || host === 'music.youtube.com' || host === 'youtu.be';
+    } catch {
+        return false;
+    }
+}
+
+app.post('/api/youtube', async (req, res) => {
+    const url = req.body.url || '';
+    if (!isYoutubeUrl(url)) {
+        return res.status(400).json({message: 'Invalid YouTube URL'});
+    }
+    // Add timestamp to avoid collisions, matching the multer convention
+    const filename = `youtube-audio-${Date.now()}.mp3`;
+    const outputPath = path.join(__dirname, 'uploads', filename);
+    try {
+        await youtubedl(url, {
+            extractAudio: true,
+            audioFormat: 'mp3',
+            output: outputPath,
+            noPlaylist: true
+        });
+        if (!fs.existsSync(outputPath)) {
+            return res.status(500).json({message: 'Conversion failed'});
+        }
+        res.json({filename});
+    } catch (e) {
+        console.error("Error converting YouTube video", e);
+        // yt-dlp reports failures (private/unavailable video, etc.) on stderr
+        const detail = (e.stderr?.split('\n').find(l => l.startsWith('ERROR:')) ?? '')
+            .replace(/^ERROR:\s*/, '');
+        res.status(500).json({message: detail || 'Failed to convert YouTube video'});
+    }
 })
 
 app.listen(port, () => {

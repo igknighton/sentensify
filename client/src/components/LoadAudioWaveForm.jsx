@@ -14,8 +14,12 @@ import useWaveSurfer from "../hooks/useWaveSurfer.jsx";
 import AudioSegments from "./AudioSegments.jsx";
 import useAudioSession from "../hooks/useAudioSession.jsx";
 import useAlert from "../hooks/useAlert.jsx";
+import Loader from "./Loader.jsx";
 
 const languageOptions = Object.entries(languages).map(([label, code]) => ({ label, code }));
+
+const YOUTUBE_URL_REGEX =
+    /^(https?:\/\/)?(www\.|m\.|music\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/|live\/)[\w-]{11}|youtu\.be\/[\w-]{11})(\S*)?$/;
 
 export default function LocalWaveform() {
 
@@ -27,8 +31,8 @@ export default function LocalWaveform() {
     } = useWaveSurfer();
     const {
         transcribeSegments,addAudioSegment,removeAudioSegment,
-        loading,filename,segments,fileUrl,
-        error,clearError,clearSession,handleFile,errMsg,
+        loading,converting,filename,segments,fileUrl,
+        error,clearError,clearSession,handleFile,handleYoutubeUrl,errMsg,
         successMsg,clearSuccess,
         language,setLanguage
     } = useAudioSession();
@@ -39,6 +43,14 @@ export default function LocalWaveform() {
     const [open, setOpen] = useState(false);
     const [deckName, setDeckName] = useState('');
     const [modalError, setModalError] = useState(false);
+    const [youtubeUrl, setYoutubeUrl] = useState('');
+    const youtubeUrlValid = YOUTUBE_URL_REGEX.test(youtubeUrl.trim());
+
+    const handleConvert = async () => {
+        await handleYoutubeUrl(youtubeUrl.trim());
+        setYoutubeUrl('');
+        if (inputRef.current) inputRef.current.value = '';
+    };
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -70,6 +82,7 @@ export default function LocalWaveform() {
 
     return (
         <div className="max-w-xl mx-auto p-4">
+            <p>Upload an mp3 file or paste a youtube link to start creating your flashcards.</p>
             {
                 error && <Alert
                 action={<IconButton
@@ -102,14 +115,42 @@ export default function LocalWaveform() {
                         {successMsg}
                 </Alert>
             }
-            <input ref={inputRef} type="file" accept="audio/*" onChange={handleFile} className="mb-3" />
+            <input ref={inputRef} type="file" accept="audio/*" onChange={handleFile} className="upload-file mb-3" />
+
+            <Stack
+                spacing={2}
+                direction="row"
+                sx={{
+                    alignItems: "flex-start",
+                    mb: 2
+                }}
+            >
+                <TextField
+                    label="YouTube URL"
+                    size="small"
+                    fullWidth
+                    value={youtubeUrl}
+                    onChange={e => setYoutubeUrl(e.target.value)}
+                    error={youtubeUrl !== '' && !youtubeUrlValid}
+                    helperText={youtubeUrl !== '' && !youtubeUrlValid ? 'Enter a valid YouTube video URL' : ''}
+                    disabled={converting}
+                />
+                <CustomButton
+                    onClick={handleConvert}
+                    disabled={!youtubeUrlValid || converting}
+                    sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+
+                >
+                    {converting ? <Loader/> : 'Convert'}
+                </CustomButton>
+            </Stack>
             <Autocomplete
                 options={languageOptions}
                 getOptionLabel={(option) => option.label}
                 value={languageOptions.find(o => o.code === language) ?? null}
                 onChange={(_, newValue) => { if (newValue) setLanguage(newValue.code); }}
                 isOptionEqualToValue={(option, value) => option.code === value.code}
-                renderInput={(params) => <TextField {...params} label="Transcription Language" size="small" />}
+                renderInput={(params) => <TextField {...params} label="Language" size="small" />}
                 sx={{ mb: 2 }}
             />
             <WavesurferPlayer

@@ -5,6 +5,7 @@ const useAudioSession = () => {
 
     //todo cleanup loading states
     const [loading, setLoading] = useState(false);
+    const [converting, setConverting] = useState(false);
     const [filename,setFilename] = useState(() =>localStorage.getItem('filename') ?? null);
     const [error, setError] = useState(false);
     const [errMsg, setErrMsg] = useState('');
@@ -133,6 +134,41 @@ const useAudioSession = () => {
         }
     };
 
+    const handleYoutubeUrl = async url => {
+        clearError()
+        clearSuccess()
+        if (!url) return;
+        if (!/^https?:\/\//.test(url)) url = `https://${url}`;
+        try {
+            setConverting(true);
+            const res = await axios.post('/api/youtube', { url });
+            const fName = res.data.filename;
+
+            const fileRes = await axios.get(`/api/upload/get/${fName}`, { responseType: 'blob' });
+            const blob = fileRes.data;
+            const file = new File([blob], fName);
+            const objUrl = URL.createObjectURL(blob);
+
+            setSelectedFile(file);
+            setFileUrl((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return objUrl;
+            });
+            localStorage.setItem("filename", fName);
+            setFilename(fName)
+            //clears old audio segments from previous file
+            setSegments([])
+            localStorage.removeItem('audioSegments');
+            setSuccessMsg('YouTube audio converted to MP3');
+        } catch (e) {
+            console.error("An error occurred while converting", e);
+            setError(true)
+            setErrMsg(e.response?.data?.message ?? 'Failed to convert YouTube video')
+        } finally {
+            setConverting(false);
+        }
+    };
+
     const addAudioSegment = (selectedStart,selectedEnd) => {
         const audioSegments = [...segments,{
             id:crypto.randomUUID(),
@@ -179,8 +215,8 @@ const useAudioSession = () => {
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
     return {
-        loading, fileUrl, segments, errMsg, error, language, filename, successMsg,
-        setLanguage, handleFile, removeAudioSegment, transcribeSegments,
+        loading, converting, fileUrl, segments, errMsg, error, language, filename, successMsg,
+        setLanguage, handleFile, handleYoutubeUrl, removeAudioSegment, transcribeSegments,
         addAudioSegment, clearError, clearSuccess, clearSession
     };
 };
