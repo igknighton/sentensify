@@ -204,9 +204,11 @@ const useAudioSession = () => {
                     setSelectedFile(file);
                 }
             } catch (e) {
-                setError(true);
-                setErrMsg("Failed to locate file")
+                // The server deletes the upload once it has been transcribed, so a stale
+                // filename here just means the session is over. Start clean instead of
+                // showing an error that survives every reload.
                 console.error("Failed to locate file",e)
+                clearSession();
             }
         }
         if (segments != null && filename != null) getAudioFile(filename).then()

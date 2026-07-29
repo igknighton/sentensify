@@ -116,11 +116,11 @@ const exportClip = (srcPath, start, end, outPath) =>
     });
 
 export const main = async (filePath, audioSegments = [], language = "es",deckName = '') => {
+    const directoryUUID = randomUUID();
+    // creating unique dir for each request to prevent race condition
+    const requestDir = path.join(os.tmpdir(), `sentensify-${directoryUUID}`);
     try {
         const ankiRunning = await checkConnection();
-        const directoryUUID = randomUUID();
-        // creating unique dir for each request to prevent race condition
-        const requestDir = path.join(os.tmpdir(), `sentensify-${directoryUUID}`);
         await ensureDir(requestDir);
         await ensureDir(path.join(requestDir, "audioClips"));
         const AUDIO_PADDING_SECONDS = 0.1;
@@ -195,6 +195,10 @@ export const main = async (filePath, audioSegments = [], language = "es",deckNam
     } catch (e) {
         console.error("An error occurred",e)
         throw e;
+    } finally {
+        // The clips have already been base64'd into Anki or bundled into the .apkg by now.
+        await fs.promises.rm(requestDir, {recursive: true, force: true})
+            .catch(e => console.error("Failed to remove temp dir", e));
     }
 
 }

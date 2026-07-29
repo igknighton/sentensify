@@ -48,6 +48,10 @@ app.post('/api/transcribe', async (req, res) => {
         }
         const {addedToAnki, apkgBuffer} = await main(filePath, audioSegments, language, deckName);
 
+        // The pipeline is done with the source audio and the client clears its session on
+        // success, so drop the upload. A failed delete must not fail the transcription.
+        await fs.promises.unlink(filePath).catch(e => console.error("Failed to delete upload", e));
+
         if (addedToAnki) {
             return res.json({addedToAnki: true, message: `Deck "${deckName}" added to Anki`});
         }
