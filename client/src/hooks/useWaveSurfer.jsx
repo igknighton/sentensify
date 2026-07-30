@@ -1,8 +1,8 @@
-import React, {useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import RegionsPlugin from "wavesurfer.js/plugins/regions";
 import ZoomPlugin from "wavesurfer.js/plugins/zoom";
 
-const useWaveSurfer = () => {
+const useWaveSurfer = (fileUrl) => {
 
     const wsRef = useRef(null);
     const regionsRef = useRef(null);
@@ -11,7 +11,26 @@ const useWaveSurfer = () => {
     const [selectedStart, setSelectedStart] = useState(0);
     const [selectedEnd, setSelectedEnd] = useState(1);
 
-    const onMount = (ws) => {
+    // wavesurfer rebuilds the instance whenever `url` changes, and wavesurfer emits
+    // `load` in a microtask before React has subscribed to it, so track which url actually
+    // reached `ready` instead of listening for the start of the load.
+    const urlRef = useRef(fileUrl);
+    urlRef.current = fileUrl;
+    const [readyUrl, setReadyUrl] = useState(null);
+    const [wsError, setWsError] = useState('');
+    const wsLoading = Boolean(fileUrl) && readyUrl !== fileUrl;
+
+    useEffect(() => setWsError(''), [fileUrl]);
+
+    const onWsError = useCallback((_ws, err) => {
+        // Swapping files destroys the previous instance, which aborts its in-flight fetch.
+        if (err?.name === 'AbortError') return;
+        setReadyUrl(urlRef.current);
+        setWsError('Could not load this audio file');
+    }, []);
+
+    const onMount = useCallback((ws) => {
+        setReadyUrl(urlRef.current);
         wsRef.current = ws;
         // Register the Regions plugin (returns the plugin instance)
         regionsRef.current = ws.registerPlugin(RegionsPlugin.create());
@@ -60,20 +79,23 @@ const useWaveSurfer = () => {
                 });
             }
         });
-    };
+    }, []);
     const clearWaveSurfer = () => {
         regionsRef.current?.clearRegions();
         wsRef.current?.empty();
         setSelectedStart(0);
         setSelectedEnd(1);
         regionsRef.current = null;
+        setReadyUrl(null);
+        setWsError('');
     };
 
     return {
         setSelectedStart,selectedStart,
         setSelectedEnd,selectedEnd,
         zoomRef,regionsRef,wsRef,
-        onMount,clearWaveSurfer
+        onMount,clearWaveSurfer,
+        wsLoading,wsError,onWsError
     };
 };
 

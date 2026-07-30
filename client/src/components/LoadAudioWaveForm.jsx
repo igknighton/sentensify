@@ -2,7 +2,7 @@ import React, {useRef, useState} from "react";
 import WavesurferPlayer from "@wavesurfer/react";
 import languages from "../types/languages.js";
 import Stack from '@mui/material/Stack';
-import {FormControl, FormHelperText, Input, InputLabel, Modal} from "@mui/material";
+import {Box, CircularProgress, FormControl, FormHelperText, Input, InputLabel, Modal, Typography} from "@mui/material";
 import CustomButton from "./CustomButton.jsx";
 import CustomBox from "./CustomBox.jsx";
 import Alert from '@mui/material/Alert';
@@ -14,7 +14,6 @@ import useWaveSurfer from "../hooks/useWaveSurfer.jsx";
 import AudioSegments from "./AudioSegments.jsx";
 import useAudioSession from "../hooks/useAudioSession.jsx";
 import useAlert from "../hooks/useAlert.jsx";
-import Loader from "./Loader.jsx";
 
 const languageOptions = Object.entries(languages).map(([label, code]) => ({ label, code }));
 
@@ -25,19 +24,23 @@ export default function LocalWaveform() {
 
     const inputRef = useRef(null);
     const {
-        selectedStart, selectedEnd,
-        regionsRef,wsRef,
-        onMount,clearWaveSurfer
-    } = useWaveSurfer();
-    const {
         transcribeSegments,addAudioSegment,removeAudioSegment,
-        loading,converting,filename,segments,fileUrl,
+        loading,converting,preparing,filename,segments,fileUrl,
         error,clearError,clearSession,handleFile,handleYoutubeUrl,errMsg,
         successMsg,clearSuccess,
         language,setLanguage
     } = useAudioSession();
+    const {
+        selectedStart, selectedEnd,
+        wsRef,
+        onMount,clearWaveSurfer,
+        wsLoading,wsError,onWsError
+    } = useWaveSurfer(fileUrl);
 
     const {showAlert,setShowAlert} = useAlert();
+
+    const busy = preparing || converting || wsLoading;
+    const waveformReady = Boolean(fileUrl) && !wsLoading;
 
 
     const [open, setOpen] = useState(false);
@@ -153,28 +156,47 @@ export default function LocalWaveform() {
                 renderInput={(params) => <TextField {...params} label="Language" size="small" />}
                 sx={{ mb: 2 }}
             />
-            <WavesurferPlayer
-                url={fileUrl || undefined}
-                height={100}
-                barWidth={2}
-                barGap={1}
-                waveColor="#f06543"
-                progressColor="#712e22"
-                cursorColor="#111827"
-                normalize
-                dragToSeek
-                onReady={onMount}
-            />
+            <Box sx={{ position: 'relative', minHeight: busy ? 100 : undefined }}>
+                <WavesurferPlayer
+                    url={fileUrl || undefined}
+                    height={100}
+                    barWidth={2}
+                    barGap={1}
+                    waveColor="#f06543"
+                    progressColor="#712e22"
+                    cursorColor="#111827"
+                    normalize
+                    dragToSeek
+                    onReady={onMount}
+                    onError={onWsError}
+                />
+                {busy && (
+                    <Box sx={{
+                        position: 'absolute', inset: 0, zIndex: 2,
+                        display: 'flex', flexDirection: 'column', gap: 1,
+                        alignItems: 'center', justifyContent: 'center',
+                        bgcolor: 'rgb(24 24 27)', borderRadius: 1,
+                    }}>
+                        <CircularProgress size={32} thickness={4} sx={{ color: '#f06543' }} />
+                        <Typography variant="caption" sx={{ color: '#f06543' }}>
+                            {converting ? 'Converting YouTube audio…'
+                                : preparing ? 'Preparing audio…'
+                                    : 'Rendering waveform…'}
+                        </Typography>
+                    </Box>
+                )}
+            </Box>
+            {wsError && <p className={'alert-danger'}>{wsError}</p>}
             {
                 loading ? <div>Transcribing Audio...</div> :
                     <div>
                         {
-                            wsRef.current && <>
+                            waveformReady && <>
                                 {showAlert ? <p className={'alert-success'}>Audio Segment Added!</p> :
                                     <p>Scroll on audio to zoom in/out</p>}
                             </>
                         }
-                        {wsRef.current && <div className={'startEndDisplay'}>
+                        {waveformReady && <div className={'startEndDisplay'}>
                             <h2>Start: {selectedStart.toFixed(2)}</h2>
                             <h2>End: {selectedEnd.toFixed(2)}</h2>
                         </div>}
@@ -188,17 +210,17 @@ export default function LocalWaveform() {
                         >
                             <CustomButton
                                 onClick={() => wsRef.current?.play(selectedStart,selectedEnd)}
-                                disabled={!wsRef.current}
+                                disabled={!waveformReady}
                             >
                                 {wsRef.current?.isPlaying() ? "Pause" : "Play Audio Segment"}
                             </CustomButton>
                             <CustomButton onClick={() => {
                                 addAudioSegment(selectedStart, selectedEnd)
                                 setShowAlert(true)
-                            }}  disabled={!regionsRef.current}>
+                            }}  disabled={!waveformReady}>
                                 Add Audio Segment
                             </CustomButton>
-                            <CustomButton onClick={handleOpen}  disabled={!regionsRef.current || segments.length === 0}>
+                            <CustomButton onClick={handleOpen}  disabled={!waveformReady || segments.length === 0}>
                                 Transcribe Audio segments
                             </CustomButton>
                             <CustomButton onClick={() => {

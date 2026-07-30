@@ -6,6 +6,9 @@ const useAudioSession = () => {
     //todo cleanup loading states
     const [loading, setLoading] = useState(false);
     const [converting, setConverting] = useState(false);
+    // A stored filename means the mount effect below is about to re-fetch the audio, so start
+    // out "preparing" and the loader is on screen from the very first paint.
+    const [preparing, setPreparing] = useState(() => localStorage.getItem('filename') != null);
     const [filename,setFilename] = useState(() =>localStorage.getItem('filename') ?? null);
     const [error, setError] = useState(false);
     const [errMsg, setErrMsg] = useState('');
@@ -24,6 +27,7 @@ const useAudioSession = () => {
     const clearSession = () => {
         clearError();
         setLoading(false);
+        setPreparing(false);
         setFilename(null);
         setSelectedFile(null);
         setFileUrl(null);
@@ -99,6 +103,7 @@ const useAudioSession = () => {
             return;
         }
         try {
+            setPreparing(true);
             const res = await axios.post('/api/upload',
                 {
                     audio: f
@@ -131,6 +136,8 @@ const useAudioSession = () => {
             console.error("An error occurred while uploading", e);
             setError(true)
             setErrMsg("Failed to upload file")
+        } finally {
+            setPreparing(false);
         }
     };
 
@@ -209,15 +216,18 @@ const useAudioSession = () => {
                 // showing an error that survives every reload.
                 console.error("Failed to locate file",e)
                 clearSession();
+            } finally {
+                setPreparing(false);
             }
         }
         if (segments != null && filename != null) getAudioFile(filename).then()
+        else setPreparing(false)
     },[])
 
     useEffect(() => () => fileUrl && URL.revokeObjectURL(fileUrl), [fileUrl]);
 
     return {
-        loading, converting, fileUrl, segments, errMsg, error, language, filename, successMsg,
+        loading, converting, preparing, fileUrl, segments, errMsg, error, language, filename, successMsg,
         setLanguage, handleFile, handleYoutubeUrl, removeAudioSegment, transcribeSegments,
         addAudioSegment, clearError, clearSuccess, clearSession
     };
