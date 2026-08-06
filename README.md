@@ -1,8 +1,9 @@
 # Sentensify
 
 Sentensify turns audio and video files — uploaded directly or pulled from a YouTube link — into Anki flashcard decks — one card per sentence. It transcribes speech using AI and slices the audio into individual sentence clips. If Anki is running locally with AnkiConnect, it adds the deck to your collection directly; otherwise it builds a self-contained `.apkg` file you can download and import by hand.
-<div style="left: 0; width: 100%; height: 0; position: relative; padding-bottom: 56.25%;"><iframe src="https://www.youtube.com/embed/X0VZIYK4uUM?rel=0" style="top: 0; left: 0; width: 100%; height: 100%; position: absolute; border: 0;" allowfullscreen scrolling="no" allow="accelerometer *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; web-share *;" referrerpolicy="strict-origin"></iframe></div>
 
+## Click the Image to View a Demo
+[![Video: Anti-Trust-War Machine](screenshot.png)](https://youtu.be/X0VZIYK4uUM)
 ## How it works
 
 1. **Load your audio** — upload an audio or video file via the browser UI, or paste a YouTube link and click **Convert to MP3** to have the server download and convert it for you.
