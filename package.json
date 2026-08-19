@@ -1,5 +1,10 @@
 {
   "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node app.js",
+    "client": "npm --prefix client run dev"
+  },
   "dependencies": {
     "@deepgram/sdk": "^4.11.2",
     "ankipack": "^0.1.3",

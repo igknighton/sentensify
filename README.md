@@ -58,15 +58,15 @@ DEEPGRAM_API_KEY=your_api_key_here
 
 ```bash
 # Start both the Express server (port 3000) and the Vite dev server concurrently
-cd client && npm run app
+npm run dev
 ```
 
 Or start them separately:
 
 ```bash
 # Server
-node app.js
+npm run server
 
 # Client (in another terminal)
-cd client && npm run dev
+npm run client
 ```
